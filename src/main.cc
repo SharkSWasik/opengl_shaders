@@ -4,9 +4,12 @@
 
 #include "program.hh"
 #include "util.hh"
+#include <GL/freeglut_std.h>
 #include <cstdlib>
+#include <math.h>
 
 GLuint vboId;
+GLuint program_id;
 // Load data in VBO and return the vbo's id
 GLuint loadDataInBuffers()
 {
@@ -33,8 +36,8 @@ bool init_gl()
 {
     glEnable(GL_DEPTH_TEST);
     glDepthFunc(GL_LESS);
-    //glDepthRange(0.0, 0.1);
-    //glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+    glDepthRange(0.0, 0.1);
+    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
     // clear the framebuffer each frame with black color
     glClearColor(0, 0, 0, 0);
     loadDataInBuffers();
@@ -51,6 +54,18 @@ void display()
 
     // draw triangles starting from index 0 and
     // using 3 indices
+    //
+
+    GLint time_location = glGetUniformLocation(program_id, "time");
+    float time = sin(glutGet(GLUT_ELAPSED_TIME) / 1000) / 2 + 0.5f;
+    glUniform1f(time_location, time);
+
+
+    GLint resoltion_location = glGetUniformLocation(program_id, "resolution");
+    float height = GLUT_SCREEN_HEIGHT;
+    float width = GLUT_SCREEN_WIDTH;
+    glUniform2f(resoltion_location, height, width);
+
     glEnableVertexAttribArray(0);
     glBindBuffer(GL_ARRAY_BUFFER, vboId);
     glVertexAttribPointer(
@@ -64,9 +79,11 @@ void display()
     glDrawArrays(GL_TRIANGLES, 0, 3);
     glDisableVertexAttribArray(0);
 
+
     // swap the buffers and hence show the buffers
     // content to the screen
     glutSwapBuffers();
+    glutPostRedisplay();
 }
 
 bool init_glut(int &argc, char *argv[])
@@ -75,7 +92,7 @@ bool init_glut(int &argc, char *argv[])
     glutInitContextVersion(4, 6);
     glutInitContextProfile(GLUT_CORE_PROFILE);
     glutInitDisplayMode(GLUT_RGBA | GLUT_DOUBLE | GLUT_DEPTH);
-    glutInitWindowSize(1024, 1024);
+    glutInitWindowSize(252, 252);
     glutInitWindowPosition(10, 10);
     glutCreateWindow("Test OpenGL - POGL");
     glutDisplayFunc(display);
@@ -113,6 +130,7 @@ int main(int argc, char *argv[])
     auto fragment = load_file(argv[2]);
 
     auto prog = mygl::Program::make_program(vertex, fragment);
+    program_id = prog->my_program;
 
     if (!prog->is_ready())
     {

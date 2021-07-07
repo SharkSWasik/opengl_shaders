@@ -17,9 +17,9 @@ namespace mygl
         GLint get_log_program();
         bool is_ready();
         void use();
+        GLuint my_program;
 
     private:
-        GLuint my_program;
         bool ready_m;
     };
 }
