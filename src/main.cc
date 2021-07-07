@@ -10,54 +10,66 @@
 
 GLuint vboId;
 GLuint program_id;
-// Load data in VBO and return the vbo's id
-GLuint loadDataInBuffers()
+
+#define TEST_OPENGL_ERROR()                                                             \
+  do {									\
+    GLenum err = glGetError();					                        \
+    if (err != GL_NO_ERROR) std::cerr << "OpenGL ERROR!" << __LINE__ << std::endl;      \
+  } while(0)
+
+void init_VAO()
 {
     GLuint VertexArrayID;
     glGenVertexArrays(1, &VertexArrayID);
     glBindVertexArray(VertexArrayID);
-   /* GLfloat vertices[] = {// vertex coordinates
-                          -1.0, -1.0, 0,
-                          1.0, -1.0, 0,
-                          0, 1.0, 0};*/
-    GLfloat vertices[] = {-1, -1, 0,
-                        -1, 1, 0,
-                        1, 1, 0,
-                        1, 1, 0,
-                        1, -1, 0,
-                        -1, -1, 0};
-
-
-    // allocate buffer space and pass data to it
-    glGenBuffers(1, &vboId);
-    glBindBuffer(GL_ARRAY_BUFFER, vboId);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-
-    // unbind the active buffer
-    //glBindBuffer(GL_ARRAY_BUFFER, 0);
-    return vboId;
 }
 
-bool init_gl()
+// init vertex buffer;
+void init_VBO()
+{
+    //6 vertices for the entire screen (2 triangles)
+    GLfloat vertices[] = {
+        -1, -1, 0, -1, 1, 0, 1, 1, 0,
+        1, 1, 0, 1, -1, 0,-1, -1, 0
+    };
+
+
+    // reservation of buffer
+    glGenBuffers(1, &vboId);TEST_OPENGL_ERROR();
+
+    //activation of buffer, vbo type
+    glBindBuffer(GL_ARRAY_BUFFER, vboId);TEST_OPENGL_ERROR();
+
+    //allocation
+    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);TEST_OPENGL_ERROR();
+
+    //how to read buffer
+    glVertexAttribPointer(
+            0,                   //location
+            3,                  // size one vertex
+            GL_FLOAT,           // type
+            GL_FALSE,           // normalize
+            0,                  // stride
+            (void*)0            // array buffer offset
+            );TEST_OPENGL_ERROR();
+
+    glEnableVertexAttribArray(0);TEST_OPENGL_ERROR();
+}
+
+void init_GL()
 {
     glEnable(GL_DEPTH_TEST);
     glDepthFunc(GL_LESS);
     glDepthRange(0.0, 0.1);
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-    // clear the framebuffer each frame with black color
     glClearColor(0, 0, 0, 0);
-    loadDataInBuffers();
-    return true;
 }
 
-// Function that does the drawing
-// glut calls this function whenever it needs to redraw
 
 void idle()
 {
     GLint time_location = glGetUniformLocation(program_id, "time");
     float time = glutGet(GLUT_ELAPSED_TIME) / 1000.;
-    //float time = sin(glutGet(GLUT_ELAPSED_TIME) / 1000) / 2 + 0.5f;
     glUniform1f(time_location, time);
     glutPostRedisplay();
 }
@@ -68,34 +80,20 @@ void display()
     // clear the color buffer before each drawing
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    // draw triangles starting from index 0 and
-    // using 3 indices
-
     GLint resoltion_location = glGetUniformLocation(program_id, "resolution");
-    float height = GLUT_SCREEN_HEIGHT;
-    float width = GLUT_SCREEN_WIDTH;
-    glUniform2f(resoltion_location, 1, 1);
+    TEST_OPENGL_ERROR();
 
-    glEnableVertexAttribArray(0);
-    glBindBuffer(GL_ARRAY_BUFFER, vboId);
-    glVertexAttribPointer(
-   0,                  // attribute 0. No particular reason for 0, but must match the layout in the shader.
-   3,                  // size
-   GL_FLOAT,           // type
-   GL_FALSE,           // normalized?
-   0,                  // stride
-   (void*)0            // array buffer offset
-);
-    glDrawArrays(GL_TRIANGLES, 0, 6);
-    glDisableVertexAttribArray(0);
+    glUniform2f(resoltion_location, 1, 1);TEST_OPENGL_ERROR();
 
+    glBindBuffer(GL_ARRAY_BUFFER, vboId);TEST_OPENGL_ERROR();
 
+    glDrawArrays(GL_TRIANGLES, 0, 6);TEST_OPENGL_ERROR();
     // swap the buffers and hence show the buffers
     // content to the screen
     glutSwapBuffers();
 }
 
-bool init_glut(int &argc, char *argv[])
+void init_glut(int &argc, char *argv[])
 {
     glutInit(&argc, argv);
     glutInitContextVersion(4, 6);
@@ -106,19 +104,15 @@ bool init_glut(int &argc, char *argv[])
     glutCreateWindow("Test OpenGL - POGL");
     glutDisplayFunc(display);
     glutIdleFunc(idle);
-    return true;
 }
 
-bool init_glew()
-{
-    glewExperimental = GL_TRUE;
-    GLenum err = glewInit();
-    if (err != GLEW_OK)
-    {
-        return false;
-    }
-
-    return true;
+//glew is opengl extension wrangler
+bool init_glew() {
+  if (glewInit()) {
+    std::cerr << " Error while initializing glew";
+    return false;
+  }
+  return true;
 }
 
 int main(int argc, char *argv[])
@@ -129,16 +123,20 @@ int main(int argc, char *argv[])
         exit(EXIT_FAILURE);
     }
 
-    bool ok = init_glut(argc, argv) && init_glew() && init_gl();
-    if (!ok)
+    init_glut(argc, argv);
+
+    if (!init_glew())
     {
-        std::cerr << "init error" << std::endl;
+        std::cerr << "failing init glew" << std::endl;
         exit(EXIT_FAILURE);
     }
 
+    init_GL();
+    init_VAO();
+    init_VBO();
+    
     auto vertex = load_file(argv[1]);
     auto fragment = load_file(argv[2]);
-
     auto prog = mygl::Program::make_program(vertex, fragment);
     program_id = prog->my_program;
 

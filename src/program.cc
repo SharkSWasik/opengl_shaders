@@ -17,8 +17,6 @@ namespace mygl
     Program *Program::make_program(std::string &vertex_shader_src,
                                    std::string &fragment_shaders)
     {
-        std::cout << vertex_shader_src << std::endl;
-        std::cout << fragment_shaders << std::endl;
         Program *program = new Program();
         program->ready_m = true;
 
