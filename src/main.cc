@@ -16,10 +16,16 @@ GLuint loadDataInBuffers()
     GLuint VertexArrayID;
     glGenVertexArrays(1, &VertexArrayID);
     glBindVertexArray(VertexArrayID);
-    GLfloat vertices[] = {// vertex coordinates
+   /* GLfloat vertices[] = {// vertex coordinates
                           -1.0, -1.0, 0,
                           1.0, -1.0, 0,
-                          0, 1.0, 0};
+                          0, 1.0, 0};*/
+    GLfloat vertices[] = {-1, -1, 0,
+                        -1, 1, 0,
+                        1, 1, 0,
+                        1, 1, 0,
+                        1, -1, 0,
+                        -1, -1, 0};
 
 
     // allocate buffer space and pass data to it
@@ -46,6 +52,16 @@ bool init_gl()
 
 // Function that does the drawing
 // glut calls this function whenever it needs to redraw
+
+void idle()
+{
+    GLint time_location = glGetUniformLocation(program_id, "time");
+    float time = glutGet(GLUT_ELAPSED_TIME) / 1000.;
+    //float time = sin(glutGet(GLUT_ELAPSED_TIME) / 1000) / 2 + 0.5f;
+    glUniform1f(time_location, time);
+    glutPostRedisplay();
+}
+
 void display()
 {
 
@@ -54,17 +70,11 @@ void display()
 
     // draw triangles starting from index 0 and
     // using 3 indices
-    //
-
-    GLint time_location = glGetUniformLocation(program_id, "time");
-    float time = sin(glutGet(GLUT_ELAPSED_TIME) / 1000) / 2 + 0.5f;
-    glUniform1f(time_location, time);
-
 
     GLint resoltion_location = glGetUniformLocation(program_id, "resolution");
     float height = GLUT_SCREEN_HEIGHT;
     float width = GLUT_SCREEN_WIDTH;
-    glUniform2f(resoltion_location, height, width);
+    glUniform2f(resoltion_location, 1, 1);
 
     glEnableVertexAttribArray(0);
     glBindBuffer(GL_ARRAY_BUFFER, vboId);
@@ -76,14 +86,13 @@ void display()
    0,                  // stride
    (void*)0            // array buffer offset
 );
-    glDrawArrays(GL_TRIANGLES, 0, 3);
+    glDrawArrays(GL_TRIANGLES, 0, 6);
     glDisableVertexAttribArray(0);
 
 
     // swap the buffers and hence show the buffers
     // content to the screen
     glutSwapBuffers();
-    glutPostRedisplay();
 }
 
 bool init_glut(int &argc, char *argv[])
@@ -96,6 +105,7 @@ bool init_glut(int &argc, char *argv[])
     glutInitWindowPosition(10, 10);
     glutCreateWindow("Test OpenGL - POGL");
     glutDisplayFunc(display);
+    glutIdleFunc(idle);
     return true;
 }
 
