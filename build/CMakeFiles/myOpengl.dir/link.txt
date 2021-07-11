@@ -1,0 +1,1 @@
+/usr/bin/c++ -g -rdynamic CMakeFiles/myOpengl.dir/src/main.cc.o CMakeFiles/myOpengl.dir/src/program.cc.o CMakeFiles/myOpengl.dir/src/util.cc.o -o myOpengl  -lglut -lXmu -lXi -lGLEW -lOpenGL -lGLX -lGLU 
