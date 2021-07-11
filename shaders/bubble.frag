@@ -31,13 +31,20 @@ float smin(float d1, float d2)
 float dist(vec3 p)
 {
     float l = pow(dot(p.xz,p.xz),.8);
-    float ripple = p.y+.8+.2*sin(l*3.-iTime+.5)/(1.+l);
+    float ripple = p.y+.8+.2*sin(l*3.-iTime * 2 - 1.5)/(1.+l);
 
-    float h1 = -sin(iTime);
-    float h2 = cos(iTime+.1);
+    float h1 = iTime * 2;
+    float h2 = iTime * 2;
+    //float h2 = cos(iTime+.1);
     
-    float drop = length(p+vec3(0,1.2,0)*h1)-.4;
-    drop = smin(drop,length(p+vec3(.1,.8,0)*h2)-.2);
+    float drop = length(p - vec3(0,1,0) + vec3(0,0.3,0)*h1)-.4;
+    int i = 3;
+    while (i < 12)
+    {
+        drop = smin(length(p - vec3(0,i,0) + vec3(0,0.3,0)*h2)-.2, drop);
+        //drop = smin(drop,length(p+vec3(.1,.8,0)*h2)-.2);
+        i += 2;
+    }
 
     if (ripple - drop > 0)
         col = vec3(1,0,0);
