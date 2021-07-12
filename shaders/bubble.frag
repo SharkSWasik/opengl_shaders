@@ -2,9 +2,11 @@
 
 uniform float time;
 uniform vec2 resolution;
+uniform sampler2D sky_sampler;
 
 out vec4 output_color;
 in vec3 pos;
+in vec2 text_coord;
 
 vec3 col;
 
@@ -27,30 +29,50 @@ float smin(float d1, float d2)
     const float e = -6.;
     return log(exp(d1*e)+exp(d2*e))/e;
 }
-//Ripple and drop distance function
-float dist(vec3 p)
-{
-    float l = pow(dot(p.xz,p.xz),.8);
-    float ripple = p.y+.8+.2*sin(l*3.-iTime * 2 - 1.5)/(1.+l);
 
+float sd_ripple(vec3 p)
+{
+    float amplitude = 0.2;
+    float y_translation = 0.8;
+    float frequence = 3;
+    float speed = 2;
+    float time_offset = 1.5;
+
+    float l = dot(p.xz,p.xz);
+    return p.y + y_translation + amplitude * sin(l * frequence - iTime * speed - time_offset) / (1. + l);
+}
+
+float sd_sphere(vec3 p, float s)
+{
     float h1 = iTime * 2;
     float h2 = iTime * 2;
     //float h2 = cos(iTime+.1);
-    
-    float drop = length(p - vec3(0,1,0) + vec3(0,0.3,0)*h1)-.4;
+    float drop = length(p - vec3(0,1,0) + vec3(0,0.3,0) * h1) - s;
     int i = 3;
     while (i < 12)
     {
-        drop = smin(length(p - vec3(0,i,0) + vec3(0,0.3,0)*h2)-.2, drop);
+        drop = min(length(p - vec3(0,i,0) + vec3(0,0.3,0) * h2) - s, drop);
         //drop = smin(drop,length(p+vec3(.1,.8,0)*h2)-.2);
         i += 2;
     }
+    return drop;
+}
 
-    if (ripple - drop > 0)
-        col = vec3(1,0,0);
-    else
+//Ripple and drop distance function
+float dist(vec3 p)
+{
+    float ripple = sd_ripple(p);
+
+    float drop = sd_sphere(p, .2);
+
+    if (ripple > drop)
+        col = vec3(0,0,0);
+    else if (ripple < 0.2)
         col = vec3(0,0,1);
-    return smin(ripple,drop);
+    else
+        col = texture(sky_sampler, text_coord).xyz * vec3(0.1,0.1,0.1);
+    return min(ripple,drop);
+    //return min(drop, drop);
 }
 //Typical SDF normal function
 vec3 normal(vec3 p)
@@ -71,6 +93,8 @@ vec4 march(vec3 p, vec3 d)
 
         if (s<.01 || m.w>20.) break;
     }
+    if (m.w > 20)
+        col = vec3(1,1,1);
     return m;
 }
 
@@ -78,13 +102,8 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord )
 {
     vec2 res = iResolution.xy;
     
-    if (pos.y < 0.5)
-    {
-        col = vec3(0,0,1);
-    }
-    vec3 col2 = vec3(1,0,0);
-
-    vec3 pos = vec3(.05*cos(iTime),.1*sin(iTime),-4);
+    //vec3 pos = vec3(.05*cos(iTime),.1*sin(iTime),-4);
+    vec3 pos = vec3(0,0,-4);
 
     //Sample
     for(float x = 0.;x<AA;x++)

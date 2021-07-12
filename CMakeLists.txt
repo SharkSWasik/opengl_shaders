@@ -19,7 +19,10 @@ include_directories(include
 add_executable( myOpengl
     src/main.cc
     src/program.cc
-    src/util.cc)
+    src/util.cc
+    src/image.cc
+    src/image_io.cc
+    )
 
 #-----------linking step
 target_link_libraries(myOpengl ${GLUT_LIBRARY}

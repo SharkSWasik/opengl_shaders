@@ -3,13 +3,17 @@
 #include "GL/glu.h"
 
 #include "program.hh"
+#include "image.hh"
+#include "image_io.hh"
 #include "util.hh"
 #include <GL/freeglut_std.h>
 #include <cstdlib>
 #include <math.h>
+#include <vector>
 
-GLuint vboId;
+//vbo for vertices and texture coords
 GLuint program_id;
+GLuint VertexArrayID;
 
 #define TEST_OPENGL_ERROR()                                                             \
   do {									\
@@ -19,41 +23,105 @@ GLuint program_id;
 
 void init_VAO()
 {
-    GLuint VertexArrayID;
-    glGenVertexArrays(1, &VertexArrayID);
-    glBindVertexArray(VertexArrayID);
+    glGenVertexArrays(1, &VertexArrayID);TEST_OPENGL_ERROR();
+    glBindVertexArray(VertexArrayID);TEST_OPENGL_ERROR();
 }
 
 // init vertex buffer;
 void init_VBO()
 {
-    //6 vertices for the entire screen (2 triangles)
-    GLfloat vertices[] = {
-        -1, -1, 0, -1, 1, 0, 1, 1, 0,
-        1, 1, 0, 1, -1, 0,-1, -1, 0
-    };
-
+    GLuint vboId[2];
+    GLint vertex_location = glGetAttribLocation(program_id, "position");TEST_OPENGL_ERROR();
+    GLint uv_location = glGetAttribLocation(program_id, "uv");TEST_OPENGL_ERROR();
 
     // reservation of buffer
-    glGenBuffers(1, &vboId);TEST_OPENGL_ERROR();
+    init_VAO();
+    glGenBuffers(2, vboId);TEST_OPENGL_ERROR();
+
+    if (uv_location != -1)
+    {
+
+        std::vector<GLfloat> uv = {
+            1, 1,
+            0.5, 1,
+            0.5, 0.5,
+            1, 1,
+            1, 0.5,
+            0.5, 0.5,
+        };
+
+        //activation of buffer, vbo type
+        glBindBuffer(GL_ARRAY_BUFFER, uv_location);TEST_OPENGL_ERROR();
+
+        //allocation
+        glBufferData(GL_ARRAY_BUFFER, uv.size() * sizeof(float), uv.data(), GL_STATIC_DRAW);TEST_OPENGL_ERROR();
+
+        //how to read buffer
+        glVertexAttribPointer(
+                uv_location,        //location
+                2,                  // size one vertex
+                GL_FLOAT,           // type
+                GL_FALSE,           // normalize
+                0,                  // stride
+                0            // array buffer offset
+                );TEST_OPENGL_ERROR();
+
+        glEnableVertexAttribArray(uv_location);TEST_OPENGL_ERROR();
+    }
+
+    //6 vertices for the entire screen (2 triangles)
+    std::vector<GLfloat> vertices = {
+        1, 1, 0,
+        -1, 1, 0,
+        -1, -1, 0,
+        1, 1, 0,
+        1, -1, 0,
+        -1, -1, 0,
+    };
 
     //activation of buffer, vbo type
-    glBindBuffer(GL_ARRAY_BUFFER, vboId);TEST_OPENGL_ERROR();
+    glBindBuffer(GL_ARRAY_BUFFER, vboId[1]);TEST_OPENGL_ERROR();
 
     //allocation
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);TEST_OPENGL_ERROR();
+    glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(float), vertices.data(), GL_STATIC_DRAW);TEST_OPENGL_ERROR();
 
     //how to read buffer
     glVertexAttribPointer(
-            0,                   //location
+            vertex_location,    //location
             3,                  // size one vertex
             GL_FLOAT,           // type
             GL_FALSE,           // normalize
             0,                  // stride
-            (void*)0            // array buffer offset
+            0            // array buffer offset
             );TEST_OPENGL_ERROR();
 
-    glEnableVertexAttribArray(0);TEST_OPENGL_ERROR();
+    glEnableVertexAttribArray(vertex_location);TEST_OPENGL_ERROR();
+
+    glBindVertexArray(0);
+}
+
+void init_textures()
+{
+    tifo::rgb24_image *sky = tifo::load_image("sky2.tga");
+    GLuint texture_id;
+    GLint tex_location;
+
+    glGenTextures(1, &texture_id);TEST_OPENGL_ERROR();
+    glActiveTexture(GL_TEXTURE0);TEST_OPENGL_ERROR();
+
+    //activation of texture
+    glBindTexture(GL_TEXTURE_2D, texture_id);
+
+    //generation of texture
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, sky->sx, sky->sy, 0, GL_RGB, GL_UNSIGNED_BYTE, sky->pixels);TEST_OPENGL_ERROR();
+
+    tex_location = glGetUniformLocation(program_id, "sky_sampler");TEST_OPENGL_ERROR();
+    glUniform1i(tex_location, 0);TEST_OPENGL_ERROR();
+
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);TEST_OPENGL_ERROR();
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);TEST_OPENGL_ERROR();
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);TEST_OPENGL_ERROR();
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);TEST_OPENGL_ERROR();
 }
 
 void init_GL()
@@ -85,9 +153,11 @@ void display()
 
     glUniform2f(resoltion_location, 1, 1);TEST_OPENGL_ERROR();
 
-    glBindBuffer(GL_ARRAY_BUFFER, vboId);TEST_OPENGL_ERROR();
+    glBindVertexArray(VertexArrayID);TEST_OPENGL_ERROR();
 
     glDrawArrays(GL_TRIANGLES, 0, 6);TEST_OPENGL_ERROR();
+
+    glBindVertexArray(0);
     // swap the buffers and hence show the buffers
     // content to the screen
     glutSwapBuffers();
@@ -132,8 +202,6 @@ int main(int argc, char *argv[])
     }
 
     init_GL();
-    init_VAO();
-    init_VBO();
     
     auto vertex = load_file(argv[1]);
     auto fragment = load_file(argv[2]);
@@ -145,8 +213,12 @@ int main(int argc, char *argv[])
         std::cerr << "prog is not ready" << std::endl;
         exit(EXIT_FAILURE);
     }
-
     prog->use();
+
+   // init_VAO();
+    init_VBO();
+    init_textures();
+
     glutMainLoop();
     delete prog;
     return 0;
