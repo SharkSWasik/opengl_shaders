@@ -42,12 +42,12 @@ void init_VBO()
     {
 
         std::vector<GLfloat> uv = {
-            1, 1,
-            0.5, 1,
-            0.5, 0.5,
-            1, 1,
-            1, 0.5,
-            0.5, 0.5,
+            0, 1.5,
+            0, 0,
+            1, 0,
+            0, 1.5,
+            1, 1.5,
+            1, 0,
         };
 
         //activation of buffer, vbo type
@@ -71,12 +71,12 @@ void init_VBO()
 
     //6 vertices for the entire screen (2 triangles)
     std::vector<GLfloat> vertices = {
-        1, 1, 0,
+        -1, -1, 0,
         -1, 1, 0,
-        -1, -1, 0,
         1, 1, 0,
-        1, -1, 0,
         -1, -1, 0,
+        1, -1, 0,
+        1, 1, 0,
     };
 
     //activation of buffer, vbo type
