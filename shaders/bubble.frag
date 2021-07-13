@@ -5,8 +5,8 @@ uniform vec2 resolution;
 uniform sampler2D sky_sampler;
 
 out vec4 output_color;
-in vec3 pos;
-in vec2 text_coord;
+in vec3 pos_;
+//in vec2 text_coord;
 
 vec3 col;
 
@@ -69,8 +69,8 @@ float dist(vec3 p)
         col = vec3(0,0,0);
     else if (ripple < 0.2)
         col = vec3(1,0,0);
-    else
-        col = texture(sky_sampler, text_coord).xyz;
+    //else
+      //  col = texture(sky_sampler, text_coord).xyz;
     return min(ripple,drop);
     //return min(drop, drop);
 }
@@ -127,6 +127,6 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord )
 
 void main(void)
 {
-    mainImage(output_color, pos.xy);
+    mainImage(output_color, pos_.xy);
 }
 
