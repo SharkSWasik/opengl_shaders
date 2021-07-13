@@ -2,6 +2,13 @@
 #include "GL/freeglut.h"
 #include "GL/glu.h"
 
+#include <glm/vec3.hpp> // glm::vec3
+#include <glm/vec4.hpp> // glm::vec4
+#include <glm/mat4x4.hpp> // glm::mat4
+#include <glm/ext/matrix_transform.hpp> // glm::translate, glm::rotate, glm::scale
+#include <glm/ext/matrix_clip_space.hpp> // glm::perspective
+#include <glm/ext/scalar_constants.hpp> // glm::pi
+
 #include "program.hh"
 #include "image.hh"
 #include "image_io.hh"
@@ -23,6 +30,7 @@ GLuint VertexArrayID;
     GLenum err = glGetError();					                        \
     if (err != GL_NO_ERROR) std::cerr << "OpenGL ERROR!" << __LINE__ << std::endl;      \
   } while(0)
+
 
 void init_VAO()
 {
@@ -75,53 +83,53 @@ void init_VBO()
     //6 vertices for the entire screen (2 triangles)
     std::vector<GLfloat> vertices = {
     // positions
-    -1.0f,  1.0f, -1.0f,
-    -1.0f, -1.0f, -1.0f,
-     1.0f, -1.0f, -1.0f,
-     1.0f, -1.0f, -1.0f,
-     1.0f,  1.0f, -1.0f,
-    -1.0f,  1.0f, -1.0f,
+    -10.0f,  10.0f, -10.0f,
+    -10.0f, -10.0f, -10.0f,
+     10.0f, -10.0f, -10.0f,
+     10.0f, -10.0f, -10.0f,
+     10.0f,  10.0f, -10.0f,
+    -10.0f,  10.0f, -10.0f,
 
-    -1.0f, -1.0f,  1.0f,
-    -1.0f, -1.0f, -1.0f,
-    -1.0f,  1.0f, -1.0f,
-    -1.0f,  1.0f, -1.0f,
-    -1.0f,  1.0f,  1.0f,
-    -1.0f, -1.0f,  1.0f,
+    -10.0f, -10.0f,  10.0f,
+    -10.0f, -10.0f, -10.0f,
+    -10.0f,  10.0f, -10.0f,
+    -10.0f,  10.0f, -10.0f,
+    -10.0f,  10.0f,  10.0f,
+    -10.0f, -10.0f,  10.0f,
 
-     1.0f, -1.0f, -1.0f,
-     1.0f, -1.0f,  1.0f,
-     1.0f,  1.0f,  1.0f,
-     1.0f,  1.0f,  1.0f,
-     1.0f,  1.0f, -1.0f,
-     1.0f, -1.0f, -1.0f,
+     10.0f, -10.0f, -10.0f,
+     10.0f, -10.0f,  10.0f,
+     10.0f,  10.0f,  10.0f,
+     10.0f,  10.0f,  10.0f,
+     10.0f,  10.0f, -10.0f,
+     10.0f, -10.0f, -10.0f,
 
-    -1.0f, -1.0f,  1.0f,
-    -1.0f,  1.0f,  1.0f,
-     1.0f,  1.0f,  1.0f,
-     1.0f,  1.0f,  1.0f,
-     1.0f, -1.0f,  1.0f,
-    -1.0f, -1.0f,  1.0f,
+    -10.0f, -10.0f,  10.0f,
+    -10.0f,  10.0f,  10.0f,
+     10.0f,  10.0f,  10.0f,
+     10.0f,  10.0f,  10.0f,
+     10.0f, -10.0f,  10.0f,
+    -10.0f, -10.0f,  10.0f,
 
-    -1.0f,  1.0f, -1.0f,
-     1.0f,  1.0f, -1.0f,
-     1.0f,  1.0f,  1.0f,
-     1.0f,  1.0f,  1.0f,
-    -1.0f,  1.0f,  1.0f,
-    -1.0f,  1.0f, -1.0f,
+    -10.0f,  10.0f, -10.0f,
+     10.0f,  10.0f, -10.0f,
+     10.0f,  10.0f,  10.0f,
+     10.0f,  10.0f,  10.0f,
+    -10.0f,  10.0f,  10.0f,
+    -10.0f,  10.0f, -10.0f,
 
-    -1.0f, -1.0f, -1.0f,
-    -1.0f, -1.0f,  1.0f,
-     1.0f, -1.0f, -1.0f,
-     1.0f, -1.0f, -1.0f,
-    -1.0f, -1.0f,  1.0f,
-     1.0f, -1.0f,  1.0f
+    -10.0f, -10.0f, -10.0f,
+    -10.0f, -10.0f,  10.0f,
+     10.0f, -10.0f, -10.0f,
+     10.0f, -10.0f, -10.0f,
+    -10.0f, -10.0f,  10.0f,
+     10.0f, -10.0f,  10.0f
 };
     //activation of buffer, vbo type
     glBindBuffer(GL_ARRAY_BUFFER, vboId[1]);TEST_OPENGL_ERROR();
 
     //allocation
-    glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(float), vertices.data(), GL_STATIC_DRAW);TEST_OPENGL_ERROR();
+    glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(GLfloat), vertices.data(), GL_STATIC_DRAW);TEST_OPENGL_ERROR();
 
     //how to read buffer
     glVertexAttribPointer(
@@ -136,16 +144,20 @@ void init_VBO()
     glEnableVertexAttribArray(vertex_location);TEST_OPENGL_ERROR();
 
     glBindVertexArray(0);
+    
+    GLint resoltion_location = glGetUniformLocation(program_id, "resolution");
+    TEST_OPENGL_ERROR();
+    glUniform2f(resoltion_location, 1, 1);TEST_OPENGL_ERROR();
 }
 
 void init_textures()
 {
-    std::vector<std::string> sky_faces = {"../textures/skybox_nz.tga",
+    std::vector<std::string> sky_faces = {"../textures/skybox_px.tga",
                                         "../textures/skybox_nx.tga",
                                         "../textures/skybox_py.tga",
                                         "../textures/skybox_ny.tga",
-                                        "../textures/skybox_px.tga",
-                                        "../textures/skybox_pz.tga"
+                                        "../textures/skybox_pz.tga",
+                                        "../textures/skybox_nz.tga"
                                         };
     GLuint texture_id;
     GLint tex_location;
@@ -176,24 +188,6 @@ void init_textures()
 
 void init_matrix()
 {
-
-    Mat camera;
-
-    camera.look_at(camera, 4.0f, 3.0f, 3.0f, 0.f, 0.f, 0.f, 0.f, 1.f, 0.f);
-    //camera.frucstum(camera, 1.57f, 0.52f, 4.0f, 3.0f, 0.1f, 100.0f);
-
-    GLint mvp_location = glGetUniformLocation(program_id, "mvp");
-
-    float view_ [16];
-
-    for (int i = 0; i < 4; i++)
-    for (int j = 0; j < 4; j++)
-    {
-        view_[i * 4 + j] = camera.data[i][j];
-        std::cout << camera.data[i][j] << std::endl;
-    }
-
-    glUniformMatrix4fv(mvp_location, 1, GL_FALSE, view_);
 }
 
 void init_GL()
@@ -211,6 +205,33 @@ void idle()
     GLint time_location = glGetUniformLocation(program_id, "time");
     float time = glutGet(GLUT_ELAPSED_TIME) / 1000.;
     glUniform1f(time_location, time);
+
+
+    // Projection matrix : 45° Field of View, 4:3 ratio, display range : 0.1 unit <-> 100 units
+    glm::mat4 Projection = glm::perspective(glm::radians(45.0f), 1.0f, 0.1f, 100.0f);
+
+    // Or, for an ortho camera :
+    //glm::mat4 Projection = glm::ortho(-10.0f,10.0f,-10.0f,10.0f,0.0f,100.0f); // In world coordinates
+
+    // Camera matrix
+    float radius = 10.0f;
+    float camX = sin(time / 10) * radius;
+    float camZ = cos(time / 10) * radius;
+    glm::mat4 View;
+View = glm::lookAt(glm::vec3(0.0f, 0.0f, 3.0f),
+                   glm::vec3(0.0f, 0.0f, 0.0f),
+                   glm::vec3(0.0f, 1.0f, 0.0f));
+//    View = glm::lookAt(glm::vec3(camX, 0.0, camZ), glm::vec3(0.0, 0.0, 0.0), glm::vec3(0.0, 1.0, 0.0));
+
+    // Model matrix : an identity matrix (model will be at the origin)
+    glm::mat4 Model = glm::mat4(1.0f);
+    // Our ModelViewProjection : multiplication of our 3 matrices
+    glm::mat4 mvp = Projection * View * Model;
+
+    GLint mvp_location = glGetUniformLocation(program_id, "MVP");
+
+    glUniformMatrix4fv(mvp_location, 1, GL_FALSE, &mvp[0][0]);
+
     glutPostRedisplay();
 }
 
@@ -219,10 +240,6 @@ void display()
 
     // clear the color buffer before each drawing
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-    GLint resoltion_location = glGetUniformLocation(program_id, "resolution");
-    TEST_OPENGL_ERROR();
-    glUniform2f(resoltion_location, 1, 1);TEST_OPENGL_ERROR();
 
     glBindVertexArray(VertexArrayID);TEST_OPENGL_ERROR();
 
@@ -289,7 +306,6 @@ int main(int argc, char *argv[])
    // init_VAO();
     init_VBO();
     init_textures();
-   // init_matrix();
 
     glutMainLoop();
     delete prog;

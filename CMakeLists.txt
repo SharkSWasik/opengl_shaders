@@ -8,20 +8,22 @@ set(CMAKE_CXX_STANDARD_REQUIRED TRUE)
 find_package(OpenGL REQUIRED COMPONENTS OpenGL)
 find_package(GLUT REQUIRED)
 find_package(GLEW REQUIRED)
+find_package(glm REQUIRED)
 
 include_directories(include
     ${GLUT_INCLUDE_DIR}
+    ${glm_INCLUDE_DIR}
     ${GLEW_INCLUDE_DIR}
     ${OPENGL_INCLUDE_DIR}
     )
 
 #-----------compilation step
 add_executable( myOpengl
-    src/main.cc
     src/program.cc
     src/util.cc
     src/image.cc
     src/image_io.cc
+    src/main.cc
     )
 
 #-----------linking step
