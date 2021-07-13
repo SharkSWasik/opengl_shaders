@@ -68,9 +68,9 @@ float dist(vec3 p)
     if (ripple > drop)
         col = vec3(0,0,0);
     else if (ripple < 0.2)
-        col = vec3(0,0,1);
+        col = vec3(1,0,0);
     else
-        col = texture(sky_sampler, text_coord).xyz * vec3(0.1,0.1,0.1);
+        col = texture(sky_sampler, text_coord).xyz;
     return min(ripple,drop);
     //return min(drop, drop);
 }

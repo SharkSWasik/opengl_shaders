@@ -6,6 +6,9 @@
 #include "image.hh"
 #include "image_io.hh"
 #include "util.hh"
+#include "matrix4.hh"
+
+
 #include <GL/freeglut_std.h>
 #include <cstdlib>
 #include <math.h>
@@ -71,14 +74,49 @@ void init_VBO()
 
     //6 vertices for the entire screen (2 triangles)
     std::vector<GLfloat> vertices = {
-        -1, -1, 0,
-        -1, 1, 0,
-        1, 1, 0,
-        -1, -1, 0,
-        1, -1, 0,
-        1, 1, 0,
-    };
+    // positions
+    -1.0f,  1.0f, -1.0f,
+    -1.0f, -1.0f, -1.0f,
+     1.0f, -1.0f, -1.0f,
+     1.0f, -1.0f, -1.0f,
+     1.0f,  1.0f, -1.0f,
+    -1.0f,  1.0f, -1.0f,
 
+    -1.0f, -1.0f,  1.0f,
+    -1.0f, -1.0f, -1.0f,
+    -1.0f,  1.0f, -1.0f,
+    -1.0f,  1.0f, -1.0f,
+    -1.0f,  1.0f,  1.0f,
+    -1.0f, -1.0f,  1.0f,
+
+     1.0f, -1.0f, -1.0f,
+     1.0f, -1.0f,  1.0f,
+     1.0f,  1.0f,  1.0f,
+     1.0f,  1.0f,  1.0f,
+     1.0f,  1.0f, -1.0f,
+     1.0f, -1.0f, -1.0f,
+
+    -1.0f, -1.0f,  1.0f,
+    -1.0f,  1.0f,  1.0f,
+     1.0f,  1.0f,  1.0f,
+     1.0f,  1.0f,  1.0f,
+     1.0f, -1.0f,  1.0f,
+    -1.0f, -1.0f,  1.0f,
+
+    -1.0f,  1.0f, -1.0f,
+     1.0f,  1.0f, -1.0f,
+     1.0f,  1.0f,  1.0f,
+     1.0f,  1.0f,  1.0f,
+    -1.0f,  1.0f,  1.0f,
+    -1.0f,  1.0f, -1.0f,
+
+    -1.0f, -1.0f, -1.0f,
+    -1.0f, -1.0f,  1.0f,
+     1.0f, -1.0f, -1.0f,
+     1.0f, -1.0f, -1.0f,
+    -1.0f, -1.0f,  1.0f,
+     1.0f, -1.0f,  1.0f
+};
     //activation of buffer, vbo type
     glBindBuffer(GL_ARRAY_BUFFER, vboId[1]);TEST_OPENGL_ERROR();
 
@@ -102,7 +140,13 @@ void init_VBO()
 
 void init_textures()
 {
-    tifo::rgb24_image *sky = tifo::load_image("sky2.tga");
+    std::vector<std::string> sky_faces = {"textures/skybox_nz.tga",
+                                        "textures/skybox_nx.tga",
+                                        "textures/skybox_py.tga",
+                                        "textures/skybox_ny.tga",
+                                        "textures/skybox_px.tga",
+                                        "textures/skybox_pz.tga"
+                                        };
     GLuint texture_id;
     GLint tex_location;
 
@@ -110,18 +154,46 @@ void init_textures()
     glActiveTexture(GL_TEXTURE0);TEST_OPENGL_ERROR();
 
     //activation of texture
-    glBindTexture(GL_TEXTURE_2D, texture_id);
+    glBindTexture(GL_TEXTURE_CUBE_MAP, texture_id);
 
-    //generation of texture
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, sky->sx, sky->sy, 0, GL_RGB, GL_UNSIGNED_BYTE, sky->pixels);TEST_OPENGL_ERROR();
+    for (int i = 0; i < 6; i++)
+    {
+        tifo::rgb24_image *sky = tifo::load_image(sky_faces[i].c_str());
+        //generation of texture
+        glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGB, sky->sx, sky->sy, 0, GL_RGB, GL_UNSIGNED_BYTE, sky->pixels);TEST_OPENGL_ERROR();
+    }
+
 
     tex_location = glGetUniformLocation(program_id, "sky_sampler");TEST_OPENGL_ERROR();
     glUniform1i(tex_location, 0);TEST_OPENGL_ERROR();
 
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);TEST_OPENGL_ERROR();
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);TEST_OPENGL_ERROR();
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);TEST_OPENGL_ERROR();
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);TEST_OPENGL_ERROR();
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);TEST_OPENGL_ERROR();
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);TEST_OPENGL_ERROR();
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);TEST_OPENGL_ERROR();
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);TEST_OPENGL_ERROR();
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);TEST_OPENGL_ERROR();
+}
+
+void init_matrix()
+{
+
+    Mat camera;
+
+    camera.look_at(camera, 4.0f, 3.0f, 3.0f, 0.f, 0.f, 0.f, 0.f, 1.f, 0.f);
+    //camera.frucstum(camera, 1.57f, 0.52f, 4.0f, 3.0f, 0.1f, 100.0f);
+
+    GLint mvp_location = glGetUniformLocation(program_id, "mvp");
+
+    float view_ [16];
+
+    for (int i = 0; i < 4; i++)
+    for (int j = 0; j < 4; j++)
+    {
+        view_[i * 4 + j] = camera.data[i][j];
+        std::cout << camera.data[i][j] << std::endl;
+    }
+
+    glUniformMatrix4fv(mvp_location, 1, GL_FALSE, view_);
 }
 
 void init_GL()
@@ -150,12 +222,11 @@ void display()
 
     GLint resoltion_location = glGetUniformLocation(program_id, "resolution");
     TEST_OPENGL_ERROR();
-
     glUniform2f(resoltion_location, 1, 1);TEST_OPENGL_ERROR();
 
     glBindVertexArray(VertexArrayID);TEST_OPENGL_ERROR();
 
-    glDrawArrays(GL_TRIANGLES, 0, 6);TEST_OPENGL_ERROR();
+    glDrawArrays(GL_TRIANGLES, 0, 36);TEST_OPENGL_ERROR();
 
     glBindVertexArray(0);
     // swap the buffers and hence show the buffers
@@ -218,6 +289,7 @@ int main(int argc, char *argv[])
    // init_VAO();
     init_VBO();
     init_textures();
+   // init_matrix();
 
     glutMainLoop();
     delete prog;
