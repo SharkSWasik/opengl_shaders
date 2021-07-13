@@ -140,12 +140,12 @@ void init_VBO()
 
 void init_textures()
 {
-    std::vector<std::string> sky_faces = {"textures/skybox_nz.tga",
-                                        "textures/skybox_nx.tga",
-                                        "textures/skybox_py.tga",
-                                        "textures/skybox_ny.tga",
-                                        "textures/skybox_px.tga",
-                                        "textures/skybox_pz.tga"
+    std::vector<std::string> sky_faces = {"../textures/skybox_nz.tga",
+                                        "../textures/skybox_nx.tga",
+                                        "../textures/skybox_py.tga",
+                                        "../textures/skybox_ny.tga",
+                                        "../textures/skybox_px.tga",
+                                        "../textures/skybox_pz.tga"
                                         };
     GLuint texture_id;
     GLint tex_location;
