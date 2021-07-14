@@ -1,3 +1,0 @@
-/home/banner/opengl_shaders/build/CMakeFiles/rebuild_cache.dir
-/home/banner/opengl_shaders/build/CMakeFiles/edit_cache.dir
-/home/banner/opengl_shaders/build/CMakeFiles/myOpengl.dir
