@@ -26,16 +26,18 @@ float smin(float d1, float d2)
     return log(exp(d1*e)+exp(d2*e))/e;
 }
 
-float sd_ripple(vec3 p, vec2 offset, float ball_size)
+float sd_ripple(vec3 p, vec2 offset)
 {
     // example of basic ripple equation: sin(10(x^2+y^2))/10
-    float amplitude = 0.6 * ball_size;
-    float frequence = 1. * 1./ball_size;
+    float amplitude = 0.4;
+    float frequence = 1.;
     float speed = 3.14;
+    float height_offset = 0.8;
     float time_offset = 0.;
-
     float l = dot(p.xz + offset, p.xz + offset);
-    return p.y + 0.8 + amplitude * sin(frequence * l - time * speed - time_offset) / (1. + l);
+    float attenuation = 60. / (20. * (l + 1.));
+
+    return p.y + height_offset + attenuation * amplitude * sin(frequence * l - time * speed - time_offset) / (1. + l);
 }
 
 float sd_sphere(vec3 p, vec2 offset, float ball_size)
@@ -49,10 +51,10 @@ float sd_sphere(vec3 p, vec2 offset, float ball_size)
 
 float dist(vec3 p, bool change_colors)
 {
-    float ripple = sd_ripple(p, vec2(1.0), .4);
+    float ripple = sd_ripple(p, vec2(1.0));
 
     float drop = sd_sphere(p, vec2(1.0), .4);
-    
+
     float closest = min(ripple, drop);
 
     if (change_colors)
@@ -65,7 +67,7 @@ float dist(vec3 p, bool change_colors)
     return min(ripple,drop);
 }
 
-vec3 normal(vec3 p)
+vec3 get_normal(vec3 p)
 {
     vec2 e = vec2(1,-1)*.01;
 
@@ -75,19 +77,21 @@ vec3 normal(vec3 p)
 		     dist(p-e.y  , false) * e.y);
 }
 
-vec4 march(vec3 p, vec3 d)
+vec4 raymarcher(vec3 p, vec3 ray_direction)
 {
-    vec4 m = vec4(p,0);
-    for(int i = 0; i<99; i++)
+    vec4 result = vec4(p,0);
+    float max_distance = 13.;
+    for(int i = 0; i < 50; i++)
     {
-        float s = dist(m.xyz, true);
-        m += vec4(d,1)*s;
+        float closest_dist = dist(result.xyz, true);
+        result += vec4(ray_direction,1)*closest_dist;
 
-        if (s<.01 || m.w>10.) break;
+        if (closest_dist < .01 || result.w > max_distance)
+            break;
     }
-    if (m.w > 10.)
+    if (result.w > max_distance)
         col = texture(sky_sampler, text_coord).xyz;
-    return m;
+    return result;
 }
 
 mat3 setCamera(vec3 camera_position, vec3 camera_look_at)
@@ -102,17 +106,19 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord )
 {
     //camera
     vec3 camera_look_at = vec3(0.0);
-    vec3 camera_position = camera_look_at + vec3(4.5 * abs(cos(0.5 * time)), 1.3, 5 * abs(sin(0.5 * time)));
+    vec3 camera_position = camera_look_at + vec3(4.5 * abs(cos(0.4 * time)), 1.3, 4.5 * abs(sin(0.3 * time)));
     float focal_length = 1.;
 
     mat3 camera = setCamera(camera_position, camera_look_at);
     vec2 position = (fragCoord - resolution/2.) / min(resolution.x, resolution.y);
-    vec3 ray_direction = camera * normalize(vec3(position.xy, focal_length));
 
     //raymarcher
-    vec4 mar = march(camera_position, ray_direction);
-    vec3 nor = normal(mar.xyz);
-    vec3 refraction_direction = refract(ray_direction,nor,.75);
+    vec3 ray_direction = camera * normalize(vec3(position.xy, focal_length));
+    vec4 march = raymarcher(camera_position, ray_direction);
+
+    //lighting
+    vec3 normal = get_normal(march.xyz);
+    vec3 refraction_direction = refract(ray_direction,normal,.75);
     vec3 refracted = lighting(refraction_direction);
     vec3 ambient = lighting(ray_direction)*.5+.5;
 
