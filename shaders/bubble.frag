@@ -12,6 +12,24 @@ uniform vec3 camera_;
 
 vec3 col;
 
+vec2 random2(vec2 st){
+    st = vec2( dot(st,vec2(127.1,311.7)),
+              dot(st,vec2(269.5,183.3)) );
+    return -1.0 + 2.0 * fract(sin(st));
+}
+
+float noise(vec2 st) {
+    vec2 i = floor(st);
+    vec2 f = fract(st);
+
+    vec2 u = f*f*(3.0-2.0*f);
+
+    return mix( mix( dot( random2(i + vec2(0.0,0.0) ), f - vec2(0.0,0.0) ),
+                     dot( random2(i + vec2(1.0,0.0) ), f - vec2(1.0,0.0) ), u.x),
+                mix( dot( random2(i + vec2(0.0,1.0) ), f - vec2(0.0,1.0) ),
+                     dot( random2(i + vec2(1.0,1.0) ), f - vec2(1.0,1.0) ), u.x), u.y);
+}
+
 vec3 lighting(vec3 direction)
 {
     float light = dot(direction,sqrt(vec3(.3,.5,.2)));
@@ -29,23 +47,34 @@ float smin(float d1, float d2)
 float sd_ripple(vec3 p, vec2 offset)
 {
     // example of basic ripple equation: sin(10(x^2+y^2))/10
-    float amplitude = 0.4;
+    float amplitude = 0.1;
     float frequence = 1.;
     float speed = 3.14;
     float height_offset = 0.8;
-    float time_offset = 0.;
+    float time_offset = 0.5;
     float l = dot(p.xz + offset, p.xz + offset);
     float attenuation = 60. / (20. * (l + 1.));
+
+    if (time < 1)
+        return p.y + height_offset;
 
     return p.y + height_offset + attenuation * amplitude * sin(frequence * l - time * speed - time_offset) / (1. + l);
 }
 
-float sd_sphere(vec3 p, vec2 offset, float ball_size)
+float height_sphere()
 {
-    float falling_time = 1.;
-    float dropping_height = 2.;
-    float height = -10. * pow(mod(time/2.,falling_time)+0.1, 2.) + dropping_height;
+    float falling_time = 2.5;
+    float dropping_height = 4.;
+    return -10. * pow(mod(time/4,falling_time) + 0.1, 2.) + dropping_height;
+}
+
+float sd_sphere(vec3 p, vec2 offset, float ball_size, float h_ripple)
+{
+    float falling_time = 2.5;
+    float dropping_height = 4.;
+    float height = -10. * pow(mod(time/4.,falling_time) + 0.1, 2.) + dropping_height;
     float drop = length(p + vec3(offset.x, -height, offset.y)) - ball_size;
+
     return drop;
 }
 
@@ -53,16 +82,29 @@ float dist(vec3 p, bool change_colors)
 {
     float ripple = sd_ripple(p, vec2(1.0));
 
-    float drop = sd_sphere(p, vec2(1.0), .4);
+    float drop = sd_sphere(p, vec2(1.0), .4, 1.0);
 
     float closest = min(ripple, drop);
 
     if (change_colors)
     {
 	if (closest == ripple)
-            col = vec3(0.,0.,0.1);
+    { 
+        if (drop > 0.2)
+        {
+            if (height_sphere() + drop < noise(p.xy))
+            {
+                col = mix(vec3(0.,0.1,0), vec3(0.1,0,0), clamp(drop / 10, 0, 1));
+            }
+            else
+                col = vec3(0.1,0, 0.0);
+        }
+        else{
+            col = vec3(0.0,0.1,0);
+        }
+    }
     	else if (closest == drop)
-            col = vec3(0.1,0.1,0.1);
+            col = vec3(0.0,0.1,0.0);
     }
     return min(ripple,drop);
 }
@@ -106,8 +148,8 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord )
 {
     //camera
     vec3 camera_look_at = vec3(0.0);
-    vec3 camera_position = camera_look_at + vec3(4.5 * abs(cos(0.4 * time)), 1.3, 4.5 * abs(sin(0.3 * time)));
-    float focal_length = 1.;
+    vec3 camera_position = camera_look_at + vec3(4.5, 1.3, 4.5);//* abs(cos(0.4 * time))//, 1.3, 4.5 * abs(sin(0.3 * time)));
+    float focal_length = 0.5;
 
     mat3 camera = setCamera(camera_position, camera_look_at);
     vec2 position = (fragCoord - resolution/2.) / min(resolution.x, resolution.y);

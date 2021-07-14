@@ -91,51 +91,6 @@ void init_VBO()
         1, 1, 0,
     };
 
-    //6 vertices for the entire screen (2 triangles)
-   /* std::vector<GLfloat> vertices = {
-    // positions
-    -10.0f,  10.0f, -10.0f,
-    -10.0f, -10.0f, -10.0f,
-     10.0f, -10.0f, -10.0f,
-     10.0f, -10.0f, -10.0f,
-     10.0f,  10.0f, -10.0f,
-    -10.0f,  10.0f, -10.0f,
-
-    -10.0f, -10.0f,  10.0f,
-    -10.0f, -10.0f, -10.0f,
-    -10.0f,  10.0f, -10.0f,
-    -10.0f,  10.0f, -10.0f,
-    -10.0f,  10.0f,  10.0f,
-    -10.0f, -10.0f,  10.0f,
-
-     10.0f, -10.0f, -10.0f,
-     10.0f, -10.0f,  10.0f,
-     10.0f,  10.0f,  10.0f,
-     10.0f,  10.0f,  10.0f,
-     10.0f,  10.0f, -10.0f,
-     10.0f, -10.0f, -10.0f,
-
-    -10.0f, -10.0f,  10.0f,
-    -10.0f,  10.0f,  10.0f,
-     10.0f,  10.0f,  10.0f,
-     10.0f,  10.0f,  10.0f,
-     10.0f, -10.0f,  10.0f,
-    -10.0f, -10.0f,  10.0f,
-
-    -10.0f,  10.0f, -10.0f,
-     10.0f,  10.0f, -10.0f,
-     10.0f,  10.0f,  10.0f,
-     10.0f,  10.0f,  10.0f,
-    -10.0f,  10.0f,  10.0f,
-    -10.0f,  10.0f, -10.0f,
-
-    -10.0f, -10.0f, -10.0f,
-    -10.0f, -10.0f,  10.0f,
-     10.0f, -10.0f, -10.0f,
-     10.0f, -10.0f, -10.0f,
-    -10.0f, -10.0f,  10.0f,
-     10.0f, -10.0f,  10.0f
-};*/
     //activation of buffer, vbo type
     glBindBuffer(GL_ARRAY_BUFFER, vboId[1]);TEST_OPENGL_ERROR();
 
@@ -163,7 +118,7 @@ void init_VBO()
 
 void init_textures()
 {
-     tifo::rgb24_image *sky = tifo::load_image("galaxy.tga");
+    tifo::rgb24_image *sky = tifo::load_image("galaxy.tga");
     GLuint texture_id;
     GLint tex_location;
 
@@ -183,10 +138,6 @@ void init_textures()
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);TEST_OPENGL_ERROR();
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);TEST_OPENGL_ERROR();
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);TEST_OPENGL_ERROR();
-}
-
-void init_matrix()
-{
 }
 
 void init_GL()
