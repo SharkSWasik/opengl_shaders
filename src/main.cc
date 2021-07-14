@@ -81,7 +81,7 @@ void init_VBO()
         glEnableVertexAttribArray(uv_location);TEST_OPENGL_ERROR();
     }
 
-    std::vector<GLfloat> vertices = {
+ //   std::vector<GLfloat> vertices = {
          std::vector<GLfloat> vertices = {
         -1, -1, 0,
         -1, 1, 0,
