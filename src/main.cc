@@ -2,6 +2,7 @@
 #include "GL/freeglut.h"
 #include "GL/glu.h"
 
+#include <glm/ext/vector_float3.hpp>
 #include <glm/vec3.hpp> // glm::vec3
 #include <glm/vec4.hpp> // glm::vec4
 #include <glm/mat4x4.hpp> // glm::mat4
@@ -23,7 +24,7 @@
 
 //vbo for vertices and texture coords
 GLuint program_id;
-GLuint VertexArrayID;
+GLuint VertexArrayID[2];
 
 #define TEST_OPENGL_ERROR()                                                             \
   do {									\
@@ -34,8 +35,8 @@ GLuint VertexArrayID;
 
 void init_VAO()
 {
-    glGenVertexArrays(1, &VertexArrayID);TEST_OPENGL_ERROR();
-    glBindVertexArray(VertexArrayID);TEST_OPENGL_ERROR();
+    glGenVertexArrays(2, VertexArrayID);TEST_OPENGL_ERROR();
+    glBindVertexArray(VertexArrayID[0]);TEST_OPENGL_ERROR();
 }
 
 // init vertex buffer;
@@ -80,8 +81,18 @@ void init_VBO()
         glEnableVertexAttribArray(uv_location);TEST_OPENGL_ERROR();
     }
 
-    //6 vertices for the entire screen (2 triangles)
     std::vector<GLfloat> vertices = {
+         std::vector<GLfloat> vertices = {
+        -1, -1, 0,
+        -1, 1, 0,
+        1, 1, 0,
+        -1, -1, 0,
+        1, -1, 0,
+        1, 1, 0,
+    };
+
+    //6 vertices for the entire screen (2 triangles)
+   /* std::vector<GLfloat> vertices = {
     // positions
     -10.0f,  10.0f, -10.0f,
     -10.0f, -10.0f, -10.0f,
@@ -124,7 +135,7 @@ void init_VBO()
      10.0f, -10.0f, -10.0f,
     -10.0f, -10.0f,  10.0f,
      10.0f, -10.0f,  10.0f
-};
+};*/
     //activation of buffer, vbo type
     glBindBuffer(GL_ARRAY_BUFFER, vboId[1]);TEST_OPENGL_ERROR();
 
@@ -143,7 +154,7 @@ void init_VBO()
 
     glEnableVertexAttribArray(vertex_location);TEST_OPENGL_ERROR();
 
-    glBindVertexArray(0);
+    glBindVertexArray(VertexArrayID[0]);
     
     GLint resoltion_location = glGetUniformLocation(program_id, "resolution");
     TEST_OPENGL_ERROR();
@@ -152,13 +163,7 @@ void init_VBO()
 
 void init_textures()
 {
-    std::vector<std::string> sky_faces = {"../textures/skybox_px.tga",
-                                        "../textures/skybox_nx.tga",
-                                        "../textures/skybox_py.tga",
-                                        "../textures/skybox_ny.tga",
-                                        "../textures/skybox_pz.tga",
-                                        "../textures/skybox_nz.tga"
-                                        };
+     tifo::rgb24_image *sky = tifo::load_image("galaxy.tga");
     GLuint texture_id;
     GLint tex_location;
 
@@ -166,24 +171,18 @@ void init_textures()
     glActiveTexture(GL_TEXTURE0);TEST_OPENGL_ERROR();
 
     //activation of texture
-    glBindTexture(GL_TEXTURE_CUBE_MAP, texture_id);
+    glBindTexture(GL_TEXTURE_2D, texture_id);
 
-    for (int i = 0; i < 6; i++)
-    {
-        tifo::rgb24_image *sky = tifo::load_image(sky_faces[i].c_str());
-        //generation of texture
-        glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGB, sky->sx, sky->sy, 0, GL_RGB, GL_UNSIGNED_BYTE, sky->pixels);TEST_OPENGL_ERROR();
-    }
-
+    //generation of texture
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, sky->sx, sky->sy, 0, GL_RGB, GL_UNSIGNED_BYTE, sky->pixels);TEST_OPENGL_ERROR();
 
     tex_location = glGetUniformLocation(program_id, "sky_sampler");TEST_OPENGL_ERROR();
     glUniform1i(tex_location, 0);TEST_OPENGL_ERROR();
 
-    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);TEST_OPENGL_ERROR();
-    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);TEST_OPENGL_ERROR();
-    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);TEST_OPENGL_ERROR();
-    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);TEST_OPENGL_ERROR();
-    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);TEST_OPENGL_ERROR();
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);TEST_OPENGL_ERROR();
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);TEST_OPENGL_ERROR();
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);TEST_OPENGL_ERROR();
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);TEST_OPENGL_ERROR();
 }
 
 void init_matrix()
@@ -206,7 +205,6 @@ void idle()
     float time = glutGet(GLUT_ELAPSED_TIME) / 1000.;
     glUniform1f(time_location, time);
 
-
     // Projection matrix : 45° Field of View, 4:3 ratio, display range : 0.1 unit <-> 100 units
     glm::mat4 Projection = glm::perspective(glm::radians(45.0f), 1.0f, 0.1f, 100.0f);
 
@@ -215,21 +213,27 @@ void idle()
 
     // Camera matrix
     float radius = 10.0f;
-    float camX = sin(time / 10) * radius;
-    float camZ = cos(time / 10) * radius;
+   // float camX = sin(time / 10) * radius;
+    //float camZ = cos(time / 10) * radius;
+    float camX = 4.5 * cos(0.5 * time);
+    float camZ = 4.5 * sin(0.5 * time);
     glm::mat4 View;
-View = glm::lookAt(glm::vec3(0.0f, 0.0f, 3.0f),
+    View = glm::lookAt(glm::vec3(0.0f, 0.0f, 3.0f),
                    glm::vec3(0.0f, 0.0f, 0.0f),
                    glm::vec3(0.0f, 1.0f, 0.0f));
-//    View = glm::lookAt(glm::vec3(camX, 0.0, camZ), glm::vec3(0.0, 0.0, 0.0), glm::vec3(0.0, 1.0, 0.0));
+   // View = glm::lookAt(glm::vec3(camX, 1.3, camZ), glm::vec3(0.0, 0.0, 0.0), glm::vec3(0.0, 1.0, 0.0));
 
     // Model matrix : an identity matrix (model will be at the origin)
     glm::mat4 Model = glm::mat4(1.0f);
     // Our ModelViewProjection : multiplication of our 3 matrices
     glm::mat4 mvp = Projection * View * Model;
 
-    GLint mvp_location = glGetUniformLocation(program_id, "MVP");
 
+    glm::vec3 v(camX + 10, 10, camZ);
+    GLint camera_location = glGetUniformLocation(program_id, "camera_");
+    glUniform3fv(camera_location, 1, &v[0]);
+
+    GLint mvp_location = glGetUniformLocation(program_id, "MVP");
     glUniformMatrix4fv(mvp_location, 1, GL_FALSE, &mvp[0][0]);
 
     glutPostRedisplay();
@@ -241,11 +245,12 @@ void display()
     // clear the color buffer before each drawing
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    glBindVertexArray(VertexArrayID);TEST_OPENGL_ERROR();
+    glBindVertexArray(VertexArrayID[0]);TEST_OPENGL_ERROR();
 
-    glDrawArrays(GL_TRIANGLES, 0, 36);TEST_OPENGL_ERROR();
+    glDrawArrays(GL_TRIANGLES, 0, 6);TEST_OPENGL_ERROR();
 
     glBindVertexArray(0);
+
     // swap the buffers and hence show the buffers
     // content to the screen
     glutSwapBuffers();

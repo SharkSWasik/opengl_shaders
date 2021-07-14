@@ -6,123 +6,120 @@ uniform sampler2D sky_sampler;
 
 out vec4 output_color;
 in vec3 pos_;
-//in vec2 text_coord;
+in vec2 text_coord;
+
+uniform vec3 camera_;
 
 vec3 col;
 
-// shadertoy emulation
-#define iTime time
-#define iResolution resolution
-
-#define AA 1
-
-//Background gradient
-vec3 background(vec3 d)
+vec3 lighting(vec3 direction)
 {
-    float light = dot(d,sqrt(vec3(.3,.5,.2)));
+    float light = dot(direction,sqrt(vec3(.3,.5,.2)));
 
-    return vec3(max(light*.5+.5,.0));
+    return vec3(light*.5+.5);
 }
-//Smooth minimum (based off IQ's work)
+
 float smin(float d1, float d2)
 {
+    // source: https://www.iquilezles.org/www/articles/smin/smin.htm
     const float e = -6.;
     return log(exp(d1*e)+exp(d2*e))/e;
 }
 
-float sd_ripple(vec3 p)
+float sd_ripple(vec3 p, vec2 offset, float ball_size)
 {
-    float amplitude = 0.2;
-    float y_translation = 0.8;
-    float frequence = 3;
-    float speed = 2;
-    float time_offset = 1.5;
+    // example of basic ripple equation: sin(10(x^2+y^2))/10
+    float amplitude = 0.6 * ball_size;
+    float frequence = 1. * 1./ball_size;
+    float speed = 3.14;
+    float time_offset = 0.;
 
-    float l = dot(p.xz,p.xz);
-    return p.y + y_translation + amplitude * sin(l * frequence - iTime * speed - time_offset) / (1. + l);
+    float l = dot(p.xz + offset, p.xz + offset);
+    return p.y + 0.8 + amplitude * sin(frequence * l - time * speed - time_offset) / (1. + l);
 }
 
-float sd_sphere(vec3 p, float s)
+float sd_sphere(vec3 p, vec2 offset, float ball_size)
 {
-    float h1 = iTime * 2;
-    float h2 = iTime * 2;
-    //float h2 = cos(iTime+.1);
-    float drop = length(p - vec3(0,1,0) + vec3(0,0.3,0) * h1) - s;
-    int i = 3;
-    while (i < 12)
-    {
-        drop = min(length(p - vec3(0,i,0) + vec3(0,0.3,0) * h2) - s, drop);
-        //drop = smin(drop,length(p+vec3(.1,.8,0)*h2)-.2);
-        i += 2;
-    }
+    float falling_time = 1.;
+    float dropping_height = 2.;
+    float height = -10. * pow(mod(time/2.,falling_time)+0.1, 2.) + dropping_height;
+    float drop = length(p + vec3(offset.x, -height, offset.y)) - ball_size;
     return drop;
 }
 
-//Ripple and drop distance function
-float dist(vec3 p)
+float dist(vec3 p, bool change_colors)
 {
-    float ripple = sd_ripple(p);
+    float ripple = sd_ripple(p, vec2(1.0), .4);
 
-    float drop = sd_sphere(p, .2);
+    float drop = sd_sphere(p, vec2(1.0), .4);
+    
+    float closest = min(ripple, drop);
 
-    if (ripple > drop)
-        col = vec3(0,0,0);
-    else if (ripple < 0.2)
-        col = vec3(1,0,0);
-    //else
-      //  col = texture(sky_sampler, text_coord).xyz;
+    if (change_colors)
+    {
+	if (closest == ripple)
+            col = vec3(0.,0.,0.1);
+    	else if (closest == drop)
+            col = vec3(0.1,0.1,0.1);
+    }
     return min(ripple,drop);
-    //return min(drop, drop);
 }
-//Typical SDF normal function
+
 vec3 normal(vec3 p)
 {
     vec2 e = vec2(1,-1)*.01;
 
-    return normalize(dist(p-e.yxx)*e.yxx+dist(p-e.xyx)*e.xyx+
-    dist(p-e.xxy)*e.xxy+dist(p-e.y)*e.y);
+    return normalize(dist(p-e.yxx, false) * e.yxx +
+		     dist(p-e.xyx, false) * e.xyx +
+		     dist(p-e.xxy, false) * e.xxy +
+		     dist(p-e.y  , false) * e.y);
 }
-//Basic raymarcher
+
 vec4 march(vec3 p, vec3 d)
 {
     vec4 m = vec4(p,0);
     for(int i = 0; i<99; i++)
     {
-        float s = dist(m.xyz);
+        float s = dist(m.xyz, true);
         m += vec4(d,1)*s;
 
-        if (s<.01 || m.w>20.) break;
+        if (s<.01 || m.w>10.) break;
     }
-    if (m.w > 20)
-        col = vec3(1,1,1);
+    if (m.w > 10.)
+        col = texture(sky_sampler, text_coord).xyz;
     return m;
+}
+
+mat3 setCamera(vec3 camera_position, vec3 camera_look_at)
+{
+    vec3 camera_direction = normalize(camera_look_at - camera_position);
+    vec3 camera_right = normalize(cross(camera_direction, vec3(0., 1., 0.)));
+    vec3 camera_up = cross(camera_right,camera_direction);
+    return mat3(camera_right, camera_up, camera_direction);
 }
 
 void mainImage( out vec4 fragColor, in vec2 fragCoord )
 {
-    vec2 res = iResolution.xy;
-    
-    //vec3 pos = vec3(.05*cos(iTime),.1*sin(iTime),-4);
-    vec3 pos = vec3(0,0,-4);
+    //camera
+    vec3 camera_look_at = vec3(0.0);
+    vec3 camera_position = camera_look_at + vec3(4.5 * abs(cos(0.5 * time)), 1.3, 5 * abs(sin(0.5 * time)));
+    float focal_length = 1.;
 
-    //Sample
-    for(float x = 0.;x<AA;x++)
-    for(float y = 0.;y<AA;y++)
-    {
-        vec3 ray = normalize(vec3(fragCoord-res/2.+vec2(x,y)/AA,res.y));
-        vec4 mar = march(pos,ray);
-        vec3 nor = normal(mar.xyz);
-        vec3 ref = refract(ray,nor,.75);
-        float r = smoothstep(.8,1.,dot(reflect(ray,nor),sqrt(vec3(.3,.5,.2))));
-        vec3 wat = background(ref)+.1*r*sqrt(abs(dot(ray,nor)));
-        vec3 bac = background(ray)*.5+.5;
+    mat3 camera = setCamera(camera_position, camera_look_at);
+    vec2 position = (fragCoord - resolution/2.) / min(resolution.x, resolution.y);
+    vec3 ray_direction = camera * normalize(vec3(position.xy, focal_length));
 
-        float fade = pow(min(mar.w/20.,1.),.3);
-        col += mix(wat,bac,fade);
-    }
-    col /= AA*AA;
+    //raymarcher
+    vec4 mar = march(camera_position, ray_direction);
+    vec3 nor = normal(mar.xyz);
+    vec3 refraction_direction = refract(ray_direction,nor,.75);
+    vec3 refracted = lighting(refraction_direction);
+    vec3 ambient = lighting(ray_direction)*.5+.5;
+
+    if (col != texture(sky_sampler, text_coord).xyz)
+        col += mix(refracted,ambient,0.6);
+
     fragColor = vec4(col*col,1);
-
 }
 
 void main(void)

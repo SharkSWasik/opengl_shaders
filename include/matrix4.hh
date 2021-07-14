@@ -56,13 +56,17 @@ class Matrix4
                 const float &z_near, const float &z_far)
         {
             Matrix4<T> perspective_mat;
-            perspective_mat.data[3][2] = -1;
+
             perspective_mat.data[0][0] = 2 * z_near / (right - left);
+            perspective_mat.data[0][2] = (right + left) / (right - left);
+
             perspective_mat.data[1][1] = 2 * z_near / (top - bottom);
-            perspective_mat.data[2][0] = 2 * z_near / (right - left);
-            perspective_mat.data[2][1] = (top + bottom) / (top - bottom);
-            perspective_mat.data[2][2] = -(z_far + z_near) / (z_far - z_near);
-            perspective_mat.data[2][3] = -2 * z_far * z_near / (z_far - z_near);
+            perspective_mat.data[1][2] = (top + bottom) / (top - bottom);
+
+            perspective_mat.data[2][2] = -((z_far + z_near) / (z_far - z_near));
+            perspective_mat.data[2][3] = -((2 * z_far * z_near) / (z_far - z_near));
+
+            perspective_mat.data[3][2] = -1;
 
             mat *= perspective_mat;
         }
@@ -71,24 +75,29 @@ class Matrix4
                 const float &eyeY, const float &eyeZ, const float &centerX,
                 const float &centerY, const float &centerZ, float upX, float upY, float upZ)
         {
-            auto f = Vector3<float>(centerX - eyeX, centerY - eyeY, centerZ - eyeZ).normalize();
-            auto up = Vector3<float>(upX, upY, upZ).normalize();
+            auto f = Vector3<float>(centerX - eyeX, centerY - eyeY, centerZ - eyeZ);
+            f = f / f;
+            auto up = Vector3<float>(upX, upY, upZ);
+            up = up / up;
             auto s = f * up;
             auto u = s / s * f; 
 
             Matrix4<T> viewving_mat;
             viewving_mat.data[0][0] = s[0];
-            viewving_mat.data[1][0] = s[1];
-            viewving_mat.data[2][0] = s[2];
-            viewving_mat.data[0][1] = u[0];
+            viewving_mat.data[0][1] = s[1];
+            viewving_mat.data[0][2] = s[2];
+
+            viewving_mat.data[1][0] = u[0];
             viewving_mat.data[1][1] = u[1];
-            viewving_mat.data[2][1] = u[2];
-            viewving_mat.data[0][2] = -f[0];
-            viewving_mat.data[1][2] = -f[1];
+            viewving_mat.data[1][2] = u[2];
+
+            viewving_mat.data[2][0] = -f[0];
+            viewving_mat.data[2][1] = -f[1];
             viewving_mat.data[2][2] = -f[2];
+
             viewving_mat.data[3][3] = 1;
 
-            mat *= viewving_mat;
+            mat = viewving_mat;
 
         };
 };
