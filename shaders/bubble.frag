@@ -74,25 +74,41 @@ float sd_ripple(vec3 p, vec2 offset)
 float height_sphere()
 {
     float falling_time = 2.5;
-    float dropping_height = 4.;
-    return -10. * pow(mod(time/4,falling_time) + 0.1, 2.) + dropping_height;
+    float dropping_height = 15.;
+    return -10. * pow(mod(time/2,falling_time) + 0.1, 2.) + dropping_height;
 }
 
 float sd_sphere(vec3 p, vec2 offset, float ball_size, float h_ripple)
 {
     float falling_time = 2.5;
-    float dropping_height = 4.;
-    float height = -10. * pow(mod(time/4.,falling_time) + 0.1, 2.) + dropping_height;
+    float dropping_height = 15.;
+    float height = -10. * pow(mod(time/2.,falling_time) + 0.1, 2.) + dropping_height;
     float drop = length(p + vec3(offset.x, -height, offset.y)) - ball_size;
 
     return drop;
 }
 
+float randx(float seed){
+    return fract(sin(dot(vec2(seed), vec2(12.9898, 78.233))) * 43758.5453);
+}
+
+float randy(float seed){
+    return fract(sin(dot(vec2(seed), vec2(10.9898, 50.233))) * 43758.5453);
+}
+
 struct distance dist(vec3 p)
 {
-    float ripple = sd_ripple(p, vec2(0));
+    float ripple = sd_ripple(p, vec2(1));
 
-    float drop = sd_sphere(p, vec2(0), .4, 1.0);
+    float drop = sd_sphere(p, vec2(1), .2, 1.0);
+
+    for (int i = 0; i < 60; i++)
+    {
+        float y = (randx(i) - 0.5) * 40;
+        float x = (randy(i) - 0.5) * 40;
+
+        drop = min(drop, sd_sphere(p, vec2(x,y), .2, 1.0));
+    }
 
     float closest = min(ripple, drop);
 
@@ -150,7 +166,7 @@ vec3 get_normal(vec3 p)
 vec4 raymarcher(vec3 p, vec3 ray_direction)
 {
     vec4 result = vec4(p,0);
-    float max_distance = 50.;
+    float max_distance = 70.;
     struct distance dist_obj;
     for(int i = 0; i < 50; i++)
     {
