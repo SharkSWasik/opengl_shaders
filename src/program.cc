@@ -3,6 +3,7 @@
 #include "program.hh"
 #include <cstdlib>
 
+//create an opengl program with shaders
 namespace mygl
 {
     Program::Program()
@@ -68,6 +69,7 @@ namespace mygl
         return program;
     }
 
+    //log report for shader
     GLint Program::get_log_shader(GLuint shader)
     {
         GLint success = 0;
@@ -85,6 +87,7 @@ namespace mygl
         return success;
     }
 
+    //log report for program
     GLint Program::get_log_program()
     {
         GLint isLinked = 0;

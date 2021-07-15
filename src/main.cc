@@ -24,6 +24,7 @@
 
 //vbo for vertices and texture coords
 GLuint program_id;
+//vao buffers ids
 GLuint VertexArrayID[2];
 
 #define TEST_OPENGL_ERROR()                                                             \
@@ -50,6 +51,7 @@ void init_VBO()
     init_VAO();
     glGenBuffers(2, vboId);TEST_OPENGL_ERROR();
 
+    //teture coordonates for triangles
     if (uv_location != -1)
     {
 
@@ -81,7 +83,7 @@ void init_VBO()
         glEnableVertexAttribArray(uv_location);TEST_OPENGL_ERROR();
     }
 
- //   std::vector<GLfloat> vertices = {
+    //cubemap vertices positions
     std::vector<GLfloat> vertices = {
     // positions
     -10.0f,  10.0f, -10.0f,
@@ -146,12 +148,9 @@ void init_VBO()
     glEnableVertexAttribArray(vertex_location);TEST_OPENGL_ERROR();
 
     glBindVertexArray(VertexArrayID[0]);
-    
-    GLint resoltion_location = glGetUniformLocation(program_id, "resolution");
-    TEST_OPENGL_ERROR();
-    glUniform2f(resoltion_location, 1, 1);TEST_OPENGL_ERROR();
 }
 
+//textures cubemap initiation
 void init_textures()
 {
 
@@ -179,6 +178,7 @@ void init_textures()
     }
 
 
+    //putting cubemap in uniform vairable
     tex_location = glGetUniformLocation(program_id, "sky_sampler");TEST_OPENGL_ERROR();
     glUniform1i(tex_location, 0);TEST_OPENGL_ERROR();
 
@@ -208,17 +208,13 @@ void idle()
     // Projection matrix : 45° Field of View, 4:3 ratio, display range : 0.1 unit <-> 100 units
     glm::mat4 Projection = glm::perspective(glm::radians(45.0f), 4.0f/3.0f, 0.5f, 100.0f);
 
-    // Or, for an ortho camera :
-    //glm::mat4 Projection = glm::ortho(-10.0f,10.0f,-10.0f,10.0f,0.0f,100.0f); // In world coordinates
-
-    // Camera matrix
-    float radius = 10.0f;
+    // if we want to move
+    //float radius = 10.0f;
     //float camX = sin(time / 10) * radius;
     //float camZ = cos(time / 10) * radius;
-    //float camX = 4.5 * cos(0.5 * time);
-    float camZ = -4.5 * sin(0.5 * time);
-    glm::mat4 View;
 
+    // Camera matrix
+    glm::mat4 View;
     glm::vec3 camera_position(0., 1.f, -6.f);
     glm::vec3 camera_look_at(0.f, 0.f, 0.f);
     glm::vec3 up (0.0f, 1.0f, 0.0f);
@@ -246,9 +242,9 @@ void idle()
     glutPostRedisplay();
 }
 
+//loop function
 void display()
 {
-
     // clear the color buffer before each drawing
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -302,9 +298,12 @@ int main(int argc, char *argv[])
     }
 
     init_GL();
-    
+
+    //loading shaders file
     auto vertex = load_file(argv[1]);
     auto fragment = load_file(argv[2]);
+
+    //shader setup
     auto prog = mygl::Program::make_program(vertex, fragment);
     program_id = prog->my_program;
 
@@ -315,7 +314,6 @@ int main(int argc, char *argv[])
     }
     prog->use();
 
-   // init_VAO();
     init_VBO();
     init_textures();
 
