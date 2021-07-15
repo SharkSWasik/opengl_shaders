@@ -14,12 +14,14 @@ uniform vec3 camera_look_at;
 uniform vec3 camera_position;
 
 vec3 col;
+vec3 blood_color = vec3(0.65,0.06,0.12);
 
 struct distance
 {
     float ripple;
     float sphere;
     float min;
+    float drop_height;
 };
 
 float animation_time;
@@ -64,34 +66,47 @@ float sd_ripple(vec3 p, vec2 offset, float starting_time)
     if (mod(local_time / 4., 1.) < 0.2)
     amplitude = amplitude_max * mod(time, 1.);
     float frequence = 3.;
-    float speed = 15;
-    float height_offset = 0.8;
+    float speed = 6;
+    float height_offset = 1.2;
     float time_offset = 0.5;
     float l = dot(p.xz + offset, p.xz + offset);
     float attenuation = 60. / (20. * (l + 1.));
 
-    if (local_time < 0. || local_time > 4.)
-        return p.y + height_offset;
+    // if (local_time < 0. || local_time > 4.)
+      //  return p.y + height_offset;
 
     return p.y + height_offset + attenuation * amplitude * sin(frequence * l - local_time * speed - time_offset) / (1. + l);
 }
 
-float height_sphere()
+float height_sphere(float starting_time)
 {
-    float falling_time = 2.5;
-    float dropping_height = 15.;
-    return -10. * pow(mod(time/2,falling_time) + 0.1, 2.) + dropping_height;
+    float local_time = animation_time - starting_time;
+
+    float dropping_height = 3.;
+    float height = -10. * local_time / 2 + dropping_height;
+    float intersection_time = (dropping_height + 1) * 2 / 10.;
+    if (local_time >= intersection_time)
+    {
+        height = -1. * (local_time - intersection_time) / 4 - 1;
+    }
+    return height;
 }
 
 float sd_sphere(vec3 p, vec2 offset, float ball_size, float h_ripple, float starting_time)
 {
+    float falling_time = 15;
     float local_time = animation_time - starting_time;
 
-    if (local_time < 0. || local_time > 2.5)
+    if (local_time < 0. || local_time > falling_time)
         return 300.;
 
-    float dropping_height = 15.;
-    float height = -10. * pow(local_time/2. + 0.1, 2.) + dropping_height;
+    float dropping_height = 3.;
+    float height = -10. * local_time / 2 + dropping_height;
+    float intersection_time = (dropping_height + 1) * 2 / 10.;
+    if (local_time >= intersection_time)
+    {
+        height = -1. * (local_time - intersection_time) / 4 - 1;
+    }
     float drop = length(p + vec3(offset.x, -height, offset.y)) - ball_size;
 
     return drop;
@@ -111,19 +126,26 @@ struct distance dist(vec3 p)
 
     float drop = 200;
 
-    for (int i = 0; i < 100; i++)
+    float drop_height;
+    for (int i = 0; i < 2; i++)
     {
-        float y = (randy(i) - 0.5) * 20;
-        float x = (randx(i) - 0.5) * 20;
+        float y = (randy(i) - 0.5) * 2;
+        float x = (randx(i) - 0.5) * 2;
         float starting_time = randx(i + 1) * 10;
 
+
+        float save = drop;
         drop = min(drop, sd_sphere(p, vec2(x,y), .2, 1.0, starting_time));
-        ripple = smin(ripple, sd_ripple(p, vec2(x, y), starting_time + 1.5));
+
+        if (drop != save)
+            drop_height = height_sphere(starting_time);
+
+        ripple = smin(ripple, sd_ripple(p, vec2(x, y), starting_time + 1.2));
     }
 
     float closest = min(ripple, drop);
 
-    struct distance res = {ripple, drop, min(ripple, drop)};
+    struct distance res = {ripple, drop, min(ripple, drop), drop_height};
     return res;
 }
 
@@ -144,9 +166,9 @@ vec3 change_colors(struct distance dist, vec3 normal, vec3 p)
             vec3 refrated = vec3(0.1f, 0.19f, 0.22f) + diffuse(normal, vec3(0.3f,0.5f,0.2f), 80.) * vec3(0.8f, 0.9f,0.6f);
             vec3 water_color = mix(reflect_color, refrated, 0.4);
 
-            if (height_sphere() + dist.sphere < noise(p.xy))
+            if (dist.drop_height + dist.sphere < noise(p.xy))
             {
-                color_res = mix(vec3(1.,0.,0.), water_color, clamp(dist.sphere / 3, 0, 1));
+                color_res = mix(blood_color, water_color, clamp(dist.sphere / 3, 0, 1));
             }
             else
             {
@@ -154,12 +176,12 @@ vec3 change_colors(struct distance dist, vec3 normal, vec3 p)
             }
         }
         else{
-            color_res = vec3(1.0,0,0);
+            color_res = blood_color;
         }
     }
     else
     {
-         color_res = vec3(1,0.,0.0);
+         color_res = blood_color;
     }
     return color_res;
 }
@@ -198,7 +220,7 @@ vec4 raymarcher(vec3 p, vec3 ray_direction)
 
 void mainImage( out vec4 fragColor, in vec2 fragCoord )
 {
-    animation_time = mod(time, 13.);
+    animation_time = mod(time, 20.);
     vec2 res = resolution.xy;
 
     vec3 pos = camera_position;
