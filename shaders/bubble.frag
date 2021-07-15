@@ -2,15 +2,25 @@
 
 uniform float time;
 uniform vec2 resolution;
-uniform sampler2D sky_sampler;
+uniform samplerCube sky_sampler;
+uniform mat4 MVP;
 
 out vec4 output_color;
 in vec3 pos_;
-in vec2 text_coord;
 
-uniform vec3 camera_;
+in vec4 position_;
+
+uniform vec3 camera_look_at;
+uniform vec3 camera_position;
 
 vec3 col;
+
+struct distance
+{
+    float ripple;
+    float sphere;
+    float min;
+};
 
 vec2 random2(vec2 st){
     st = vec2( dot(st,vec2(127.1,311.7)),
@@ -34,7 +44,7 @@ vec3 lighting(vec3 direction)
 {
     float light = dot(direction,sqrt(vec3(.3,.5,.2)));
 
-    return vec3(light*.5+.5);
+    return vec3(light*.5);
 }
 
 float smin(float d1, float d2)
@@ -78,93 +88,103 @@ float sd_sphere(vec3 p, vec2 offset, float ball_size, float h_ripple)
     return drop;
 }
 
-float dist(vec3 p, bool change_colors)
+struct distance dist(vec3 p)
 {
-    float ripple = sd_ripple(p, vec2(1.0));
+    float ripple = sd_ripple(p, vec2(0));
 
-    float drop = sd_sphere(p, vec2(1.0), .4, 1.0);
+    float drop = sd_sphere(p, vec2(0), .4, 1.0);
 
     float closest = min(ripple, drop);
 
-    if (change_colors)
+    struct distance res = {ripple, drop, min(ripple, drop)};
+    return res;
+}
+
+float diffuse(vec3 n,vec3 l,float p) {
+    return pow(dot(n,l) * 0.4 + 0.6, p);
+}
+
+vec3 change_colors(struct distance dist, vec3 normal, vec3 p)
+{
+    vec3 color_res = vec3(0);
+    if (dist.min == dist.ripple)
     {
-	if (closest == ripple)
-    { 
-        if (drop > 0.2)
+        if (dist.sphere > 0.2)
         {
-            if (height_sphere() + drop < noise(p.xy))
+            vec3 I = normalize(position_.xyz - camera_position);
+            vec3 R = reflect(I, normalize(normal));
+            vec3 reflect_color = texture(sky_sampler, R).xyz;
+            vec3 refrated = vec3(0.1f, 0.19f, 0.22f) + diffuse(normal, vec3(0.3f,0.5f,0.2f), 80.) * vec3(0.8f, 0.9f,0.6f);
+
+            if (height_sphere() + dist.sphere < noise(p.xy))
             {
-                col = mix(vec3(0.,0.1,0), vec3(0.1,0,0), clamp(drop / 10, 0, 1));
+                color_res = mix(vec3(1.,0.,0.), vec3(reflect_color), clamp(dist.sphere / 3, 0, 1));
             }
             else
-                col = vec3(0.1,0, 0.0);
+            {
+                color_res = reflect_color;
+            }
         }
         else{
-            col = vec3(0.0,0.1,0);
+            color_res = vec3(1.0,0,0);
         }
     }
-    	else if (closest == drop)
-            col = vec3(0.0,0.1,0.0);
+    else
+    {
+         color_res = vec3(1,0.,0.0);
     }
-    return min(ripple,drop);
+    return color_res;
 }
 
 vec3 get_normal(vec3 p)
 {
-    vec2 e = vec2(1,-1)*.01;
+    vec2 e = vec2(1,-1) * .01;
 
-    return normalize(dist(p-e.yxx, false) * e.yxx +
-		     dist(p-e.xyx, false) * e.xyx +
-		     dist(p-e.xxy, false) * e.xxy +
-		     dist(p-e.y  , false) * e.y);
+    return normalize(dist(p-e.yxx).min * e.yxx +
+		     dist(p-e.xyx).min * e.xyx +
+		     dist(p-e.xxy).min * e.xxy +
+		     dist(p-e.y).min * e.y);
 }
 
 vec4 raymarcher(vec3 p, vec3 ray_direction)
 {
     vec4 result = vec4(p,0);
     float max_distance = 13.;
+    struct distance dist_obj;
     for(int i = 0; i < 50; i++)
     {
-        float closest_dist = dist(result.xyz, true);
+        dist_obj = dist(result.xyz);
+        float closest_dist = dist_obj.min;
+
         result += vec4(ray_direction,1)*closest_dist;
 
         if (closest_dist < .01 || result.w > max_distance)
             break;
     }
     if (result.w > max_distance)
-        col = texture(sky_sampler, text_coord).xyz;
+        col = texture(sky_sampler, position_.xyz).xyz;
+    else
+        col = change_colors(dist_obj, get_normal(result.xyz), result.xyz);
     return result;
-}
-
-mat3 setCamera(vec3 camera_position, vec3 camera_look_at)
-{
-    vec3 camera_direction = normalize(camera_look_at - camera_position);
-    vec3 camera_right = normalize(cross(camera_direction, vec3(0., 1., 0.)));
-    vec3 camera_up = cross(camera_right,camera_direction);
-    return mat3(camera_right, camera_up, camera_direction);
 }
 
 void mainImage( out vec4 fragColor, in vec2 fragCoord )
 {
-    //camera
-    vec3 camera_look_at = vec3(0.0);
-    vec3 camera_position = camera_look_at + vec3(4.5, 1.3, 4.5);//* abs(cos(0.4 * time))//, 1.3, 4.5 * abs(sin(0.3 * time)));
-    float focal_length = 0.5;
+    vec2 res = resolution.xy;
 
-    mat3 camera = setCamera(camera_position, camera_look_at);
-    vec2 position = (fragCoord - resolution/2.) / min(resolution.x, resolution.y);
+    vec3 pos = camera_position;
 
     //raymarcher
-    vec3 ray_direction = camera * normalize(vec3(position.xy, focal_length));
-    vec4 march = raymarcher(camera_position, ray_direction);
+    vec3 ray_direction = normalize(position_.xyz);
+    vec4 march = raymarcher(pos, ray_direction);
 
     //lighting
     vec3 normal = get_normal(march.xyz);
     vec3 refraction_direction = refract(ray_direction,normal,.75);
     vec3 refracted = lighting(refraction_direction);
-    vec3 ambient = lighting(ray_direction)*.5+.5;
+    vec3 ambient = lighting(ray_direction)*.5;
 
-    if (col != texture(sky_sampler, text_coord).xyz)
+    if (col != texture(sky_sampler, position_.xyz).xyz)
         col += mix(refracted,ambient,0.6);
 
     fragColor = vec4(col*col,1);
@@ -174,4 +194,3 @@ void main(void)
 {
     mainImage(output_color, pos_.xy);
 }
-
