@@ -15,6 +15,7 @@ uniform vec3 camera_position;
 
 vec3 col;
 vec3 blood_color = vec3(0.65,0.06,0.12);
+#define PI 3.1415926535897932384626433832795
 
 struct distance
 {
@@ -62,27 +63,29 @@ float sd_ripple(vec3 p, vec2 offset, float starting_time)
 {
     float local_time = animation_time - starting_time;
     float amplitude_max = 0.3;
-    float amplitude = amplitude_max * mod(-local_time / 4., 1.);
-    if (mod(local_time / 4., 1.) < 0.2)
-    amplitude = amplitude_max * mod(time, 1.);
+    float amplitude = amplitude_max * (-local_time/4. + 1.125);
+
+    if (local_time < 0.5)
+        amplitude = amplitude_max * sin(PI * local_time);
+
     float frequence = 3.;
-    float speed = 6;
-    float height_offset = 1.2;
+    float speed = 3.;
+    float height_offset = 1.3;
     float time_offset = 0.5;
     float l = dot(p.xz + offset, p.xz + offset);
     float attenuation = 60. / (20. * (l + 1.));
 
-    // if (local_time < 0. || local_time > 4.)
-      //  return p.y + height_offset;
+    if (local_time < 0. || local_time > 4.5)
+        return p.y + height_offset;
 
-    return p.y + height_offset + attenuation * amplitude * sin(frequence * l - local_time * speed - time_offset) / (1. + l);
+    return p.y + height_offset + attenuation * amplitude * sin(frequence * l - animation_time * speed - time_offset) / (1. + l);
 }
 
 float height_sphere(float starting_time)
 {
     float local_time = animation_time - starting_time;
 
-    float dropping_height = 3.;
+    float dropping_height = 10.;
     float height = -10. * local_time / 2 + dropping_height;
     float intersection_time = (dropping_height + 1) * 2 / 10.;
     if (local_time >= intersection_time)
@@ -100,7 +103,7 @@ float sd_sphere(vec3 p, vec2 offset, float ball_size, float h_ripple, float star
     if (local_time < 0. || local_time > falling_time)
         return 300.;
 
-    float dropping_height = 3.;
+    float dropping_height = 10.;
     float height = -10. * local_time / 2 + dropping_height;
     float intersection_time = (dropping_height + 1) * 2 / 10.;
     if (local_time >= intersection_time)
@@ -127,10 +130,10 @@ struct distance dist(vec3 p)
     float drop = 200;
 
     float drop_height;
-    for (int i = 0; i < 2; i++)
+    for (int i = 0; i < 10; i++)
     {
-        float y = (randy(i) - 0.5) * 2;
-        float x = (randx(i) - 0.5) * 2;
+        float y = (randy(i) - 0.5) * 10;
+        float x = (randx(i) - 0.5) * 10;
         float starting_time = randx(i + 1) * 10;
 
 
@@ -140,7 +143,7 @@ struct distance dist(vec3 p)
         if (drop != save)
             drop_height = height_sphere(starting_time);
 
-        ripple = smin(ripple, sd_ripple(p, vec2(x, y), starting_time + 1.2));
+        ripple = smin(ripple, sd_ripple(p, vec2(x, y), starting_time + 2));
     }
 
     float closest = min(ripple, drop);
