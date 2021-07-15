@@ -22,6 +22,8 @@ struct distance
     float min;
 };
 
+float animation_time;
+
 vec2 random2(vec2 st){
     st = vec2( dot(st,vec2(127.1,311.7)),
               dot(st,vec2(269.5,183.3)) );
@@ -54,21 +56,24 @@ float smin(float d1, float d2)
     return log(exp(d1*e)+exp(d2*e))/e;
 }
 
-float sd_ripple(vec3 p, vec2 offset)
+float sd_ripple(vec3 p, vec2 offset, float starting_time)
 {
-    // example of basic ripple equation: sin(10(x^2+y^2))/10
-    float amplitude = 0.1;
-    float frequence = 1.;
-    float speed = 3.14;
+    float local_time = animation_time - starting_time;
+    float amplitude_max = 0.3;
+    float amplitude = amplitude_max * mod(-local_time / 4., 1.);
+    if (mod(local_time / 4., 1.) < 0.2)
+    amplitude = amplitude_max * mod(time, 1.);
+    float frequence = 3.;
+    float speed = 15;
     float height_offset = 0.8;
     float time_offset = 0.5;
     float l = dot(p.xz + offset, p.xz + offset);
     float attenuation = 60. / (20. * (l + 1.));
 
-    if (time < 1)
+    if (local_time < 0. || local_time > 4.)
         return p.y + height_offset;
 
-    return p.y + height_offset + attenuation * amplitude * sin(frequence * l - time * speed - time_offset) / (1. + l);
+    return p.y + height_offset + attenuation * amplitude * sin(frequence * l - local_time * speed - time_offset) / (1. + l);
 }
 
 float height_sphere()
@@ -78,11 +83,15 @@ float height_sphere()
     return -10. * pow(mod(time/2,falling_time) + 0.1, 2.) + dropping_height;
 }
 
-float sd_sphere(vec3 p, vec2 offset, float ball_size, float h_ripple)
+float sd_sphere(vec3 p, vec2 offset, float ball_size, float h_ripple, float starting_time)
 {
-    float falling_time = 2.5;
+    float local_time = animation_time - starting_time;
+
+    if (local_time < 0. || local_time > 2.5)
+        return 300.;
+
     float dropping_height = 15.;
-    float height = -10. * pow(mod(time/2.,falling_time) + 0.1, 2.) + dropping_height;
+    float height = -10. * pow(local_time/2. + 0.1, 2.) + dropping_height;
     float drop = length(p + vec3(offset.x, -height, offset.y)) - ball_size;
 
     return drop;
@@ -98,16 +107,18 @@ float randy(float seed){
 
 struct distance dist(vec3 p)
 {
-    float ripple = sd_ripple(p, vec2(1));
+    float ripple = 20000;
 
-    float drop = sd_sphere(p, vec2(1), .2, 1.0);
+    float drop = 200;
 
-    for (int i = 0; i < 60; i++)
+    for (int i = 0; i < 100; i++)
     {
-        float y = (randx(i) - 0.5) * 40;
-        float x = (randy(i) - 0.5) * 40;
+        float y = (randy(i) - 0.5) * 20;
+        float x = (randx(i) - 0.5) * 20;
+        float starting_time = randx(i + 1) * 10;
 
-        drop = min(drop, sd_sphere(p, vec2(x,y), .2, 1.0));
+        drop = min(drop, sd_sphere(p, vec2(x,y), .2, 1.0, starting_time));
+        ripple = smin(ripple, sd_ripple(p, vec2(x, y), starting_time + 1.5));
     }
 
     float closest = min(ripple, drop);
@@ -166,9 +177,9 @@ vec3 get_normal(vec3 p)
 vec4 raymarcher(vec3 p, vec3 ray_direction)
 {
     vec4 result = vec4(p,0);
-    float max_distance = 70.;
+    float max_distance = 500.;
     struct distance dist_obj;
-    for(int i = 0; i < 50; i++)
+    for(int i = 0; i < 99; i++)
     {
         dist_obj = dist(result.xyz);
         float closest_dist = dist_obj.min;
@@ -187,6 +198,7 @@ vec4 raymarcher(vec3 p, vec3 ray_direction)
 
 void mainImage( out vec4 fragColor, in vec2 fragCoord )
 {
+    animation_time = mod(time, 13.);
     vec2 res = resolution.xy;
 
     vec3 pos = camera_position;
@@ -201,8 +213,7 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord )
     vec3 refracted = lighting(refraction_direction);
     vec3 ambient = lighting(ray_direction)*.5;
 
-   // if (col != texture(sky_sampler, position_.xyz).xyz)
-        col += mix(refracted,ambient,0.6);
+    col += mix(refracted,ambient,0.6);
 
     fragColor = vec4(col*col,1);
 }
