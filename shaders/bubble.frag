@@ -70,7 +70,7 @@ float sd_ripple(vec3 p, vec2 offset, float starting_time)
 
     float frequence = 3.;
     float speed = 3.;
-    float height_offset = 1.3;
+    float height_offset = 1;
     float time_offset = 0.5;
     float l = dot(p.xz + offset, p.xz + offset);
     float attenuation = 60. / (20. * (l + 1.));
@@ -130,10 +130,10 @@ struct distance dist(vec3 p)
     float drop = 200;
 
     float drop_height;
-    for (int i = 0; i < 10; i++)
+    for (int i = 0; i < 3; i++)
     {
-        float y = (randy(i) - 0.5) * 10;
-        float x = (randx(i) - 0.5) * 10;
+        float y = (randy(i) - 0.5) * 8;
+        float x = (randx(i) - 0.5) * 8;
         float starting_time = randx(i + 1) * 10;
 
 
@@ -161,7 +161,7 @@ vec3 change_colors(struct distance dist, vec3 normal, vec3 p)
     vec3 color_res = vec3(0);
     if (dist.min == dist.ripple)
     {
-        if (dist.sphere > 0.2)
+        if (dist.sphere > noise(p.xy))
         {
             vec3 I = normalize(position_.xyz);
             vec3 R = reflect(I, normalize(normal));
@@ -171,7 +171,7 @@ vec3 change_colors(struct distance dist, vec3 normal, vec3 p)
 
             if (dist.drop_height + dist.sphere < noise(p.xy))
             {
-                color_res = mix(blood_color, water_color, clamp(dist.sphere / 3, 0, 1));
+                color_res = mix(blood_color, water_color, clamp(clamp(dist.sphere / 3, 0, 1) + 0.2 , 0, 1));
             }
             else
             {
@@ -223,6 +223,7 @@ vec4 raymarcher(vec3 p, vec3 ray_direction)
 
 void mainImage( out vec4 fragColor, in vec2 fragCoord )
 {
+
     animation_time = mod(time, 20.);
     vec2 res = resolution.xy;
 
