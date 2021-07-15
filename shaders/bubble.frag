@@ -145,9 +145,9 @@ struct distance dist(vec3 p)
     float drop = 200;
 
     float drop_height;
-    for (int i = 0; i < 3; i++)
+    for (int i = 0; i < 8; i++)
     {
-        float y = (randy(i) - 0.5) * 8;
+        float y = (randy(i) - 0.5) * 12;
         float x = (randx(i) - 0.5) * 8;
         float starting_time = randx(i + 1) * 10;
 
@@ -178,7 +178,7 @@ vec3 change_colors(struct distance dist, vec3 normal, vec3 p)
     {
         if (dist.sphere > noise(p.xy))
         {
-            vec3 I = normalize(position_.xyz);
+            vec3 I = normalize(position_.xyz + time * vec3(1,0,0));
             vec3 R = reflect(I, normalize(normal));
             vec3 reflect_color = texture(sky_sampler, R).xyz;
             vec3 refrated = vec3(0.1f, 0.19f, 0.22f) + diffuse(normal, vec3(0.3f,0.5f,0.2f), 80.) * vec3(0.8f, 0.9f,0.6f);
@@ -230,7 +230,7 @@ vec4 raymarcher(vec3 p, vec3 ray_direction)
             break;
     }
     if (result.w > max_distance)
-        col = texture(sky_sampler, position_.xyz).xyz;
+        col = texture(sky_sampler, position_.xyz + time * vec3(1,0,0)).xyz;
     else
         col = change_colors(dist_obj, get_normal(result.xyz), result.xyz);
     return result;
