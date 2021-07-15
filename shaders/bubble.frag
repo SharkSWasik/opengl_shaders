@@ -59,6 +59,20 @@ float smin(float d1, float d2)
     return log(exp(d1*e)+exp(d2*e))/e;
 }
 
+float sdRoundCone(vec3 p, float r1, float r2, float h, vec3 offset)
+{
+  vec2 q = vec2( length(p.xz + offset.xz), p.y + offset.y);
+    
+  float b = (r1-r2)/h;
+  float a = sqrt(1.0-b*b);
+  float k = dot(q,vec2(-b,a));
+    
+  if( k < 0.0 ) return length(q) - r1;
+  if( k > a*h ) return length(q-vec2(0.0,h)) - r2;
+        
+  return dot(q, vec2(a,b) ) - r1;
+}
+
 float sd_ripple(vec3 p, vec2 offset, float starting_time)
 {
     float local_time = animation_time - starting_time;
@@ -70,7 +84,7 @@ float sd_ripple(vec3 p, vec2 offset, float starting_time)
 
     float frequence = 3.;
     float speed = 3.;
-    float height_offset = 1;
+    float height_offset = 0.7;
     float time_offset = 0.5;
     float l = dot(p.xz + offset, p.xz + offset);
     float attenuation = 60. / (20. * (l + 1.));
@@ -110,7 +124,8 @@ float sd_sphere(vec3 p, vec2 offset, float ball_size, float h_ripple, float star
     {
         height = -1. * (local_time - intersection_time) / 4 - 1;
     }
-    float drop = length(p + vec3(offset.x, -height, offset.y)) - ball_size;
+    float drop = sdRoundCone(p, 0.2, .02, 0.4, vec3(offset.x, -height, offset.y));
+    //float drop = length(p + vec3(offset.x, -height, offset.y)) - ball_size;
 
     return drop;
 }
@@ -224,7 +239,7 @@ vec4 raymarcher(vec3 p, vec3 ray_direction)
 void mainImage( out vec4 fragColor, in vec2 fragCoord )
 {
 
-    animation_time = mod(time, 20.);
+    animation_time = mod(time, 15.);
     vec2 res = resolution.xy;
 
     vec3 pos = camera_position;
