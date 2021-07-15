@@ -111,18 +111,19 @@ vec3 change_colors(struct distance dist, vec3 normal, vec3 p)
     {
         if (dist.sphere > 0.2)
         {
-            vec3 I = normalize(position_.xyz - camera_position);
+            vec3 I = normalize(position_.xyz);
             vec3 R = reflect(I, normalize(normal));
             vec3 reflect_color = texture(sky_sampler, R).xyz;
             vec3 refrated = vec3(0.1f, 0.19f, 0.22f) + diffuse(normal, vec3(0.3f,0.5f,0.2f), 80.) * vec3(0.8f, 0.9f,0.6f);
+            vec3 water_color = mix(reflect_color, refrated, 0.4);
 
             if (height_sphere() + dist.sphere < noise(p.xy))
             {
-                color_res = mix(vec3(1.,0.,0.), vec3(reflect_color), clamp(dist.sphere / 3, 0, 1));
+                color_res = mix(vec3(1.,0.,0.), water_color, clamp(dist.sphere / 3, 0, 1));
             }
             else
             {
-                color_res = reflect_color;
+                color_res = water_color;
             }
         }
         else{
@@ -149,7 +150,7 @@ vec3 get_normal(vec3 p)
 vec4 raymarcher(vec3 p, vec3 ray_direction)
 {
     vec4 result = vec4(p,0);
-    float max_distance = 13.;
+    float max_distance = 50.;
     struct distance dist_obj;
     for(int i = 0; i < 50; i++)
     {
@@ -184,7 +185,7 @@ void mainImage( out vec4 fragColor, in vec2 fragCoord )
     vec3 refracted = lighting(refraction_direction);
     vec3 ambient = lighting(ray_direction)*.5;
 
-    if (col != texture(sky_sampler, position_.xyz).xyz)
+   // if (col != texture(sky_sampler, position_.xyz).xyz)
         col += mix(refracted,ambient,0.6);
 
     fragColor = vec4(col*col,1);

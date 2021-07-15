@@ -219,7 +219,7 @@ void idle()
     //float camZ = 4.5 * sin(0.5 * time);
     glm::mat4 View;
 
-    glm::vec3 camera_position(camX, 1.f, camZ);
+    glm::vec3 camera_position(0.f, 1.f, -4.f);
     glm::vec3 camera_look_at(0.f, 0.f, 0.f);
     glm::vec3 up (0.0f, 1.0f, 0.0f);
 
