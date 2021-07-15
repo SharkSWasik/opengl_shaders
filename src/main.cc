@@ -82,14 +82,50 @@ void init_VBO()
     }
 
  //   std::vector<GLfloat> vertices = {
-         std::vector<GLfloat> vertices = {
-        -1, -1, 0,
-        -1, 1, 0,
-        1, 1, 0,
-        -1, -1, 0,
-        1, -1, 0,
-        1, 1, 0,
-    };
+    std::vector<GLfloat> vertices = {
+    // positions
+    -10.0f,  10.0f, -10.0f,
+    -10.0f, -10.0f, -10.0f,
+     10.0f, -10.0f, -10.0f,
+     10.0f, -10.0f, -10.0f,
+     10.0f,  10.0f, -10.0f,
+    -10.0f,  10.0f, -10.0f,
+
+    -10.0f, -10.0f,  10.0f,
+    -10.0f, -10.0f, -10.0f,
+    -10.0f,  10.0f, -10.0f,
+    -10.0f,  10.0f, -10.0f,
+    -10.0f,  10.0f,  10.0f,
+    -10.0f, -10.0f,  10.0f,
+
+     10.0f, -10.0f, -10.0f,
+     10.0f, -10.0f,  10.0f,
+     10.0f,  10.0f,  10.0f,
+     10.0f,  10.0f,  10.0f,
+     10.0f,  10.0f, -10.0f,
+     10.0f, -10.0f, -10.0f,
+
+    -10.0f, -10.0f,  10.0f,
+    -10.0f,  10.0f,  10.0f,
+     10.0f,  10.0f,  10.0f,
+     10.0f,  10.0f,  10.0f,
+     10.0f, -10.0f,  10.0f,
+    -10.0f, -10.0f,  10.0f,
+
+    -10.0f,  10.0f, -10.0f,
+     10.0f,  10.0f, -10.0f,
+     10.0f,  10.0f,  10.0f,
+     10.0f,  10.0f,  10.0f,
+    -10.0f,  10.0f,  10.0f,
+    -10.0f,  10.0f, -10.0f,
+
+    -10.0f, -10.0f, -10.0f,
+    -10.0f, -10.0f,  10.0f,
+     10.0f, -10.0f, -10.0f,
+     10.0f, -10.0f, -10.0f,
+    -10.0f, -10.0f,  10.0f,
+     10.0f, -10.0f,  10.0f
+};
 
     //activation of buffer, vbo type
     glBindBuffer(GL_ARRAY_BUFFER, vboId[1]);TEST_OPENGL_ERROR();
@@ -118,7 +154,14 @@ void init_VBO()
 
 void init_textures()
 {
-    tifo::rgb24_image *sky = tifo::load_image("galaxy.tga");
+
+    std::vector<std::string> sky_faces = {"../textures/skybox_px.tga",
+                                        "../textures/skybox_nx.tga",
+                                        "../textures/skybox_py.tga",
+                                        "../textures/skybox_ny.tga",
+                                        "../textures/skybox_pz.tga",
+                                        "../textures/skybox_nz.tga"
+                                        };
     GLuint texture_id;
     GLint tex_location;
 
@@ -126,18 +169,24 @@ void init_textures()
     glActiveTexture(GL_TEXTURE0);TEST_OPENGL_ERROR();
 
     //activation of texture
-    glBindTexture(GL_TEXTURE_2D, texture_id);
+    glBindTexture(GL_TEXTURE_CUBE_MAP, texture_id);
 
-    //generation of texture
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, sky->sx, sky->sy, 0, GL_RGB, GL_UNSIGNED_BYTE, sky->pixels);TEST_OPENGL_ERROR();
+    for (int i = 0; i < 6; i++)
+    {
+        tifo::rgb24_image *sky = tifo::load_image(sky_faces[i].c_str());
+        //generation of texture
+        glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGB, sky->sx, sky->sy, 0, GL_RGB, GL_UNSIGNED_BYTE, sky->pixels);TEST_OPENGL_ERROR();
+    }
+
 
     tex_location = glGetUniformLocation(program_id, "sky_sampler");TEST_OPENGL_ERROR();
     glUniform1i(tex_location, 0);TEST_OPENGL_ERROR();
 
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);TEST_OPENGL_ERROR();
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);TEST_OPENGL_ERROR();
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);TEST_OPENGL_ERROR();
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);TEST_OPENGL_ERROR();
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);TEST_OPENGL_ERROR();
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);TEST_OPENGL_ERROR();
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);TEST_OPENGL_ERROR();
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);TEST_OPENGL_ERROR();
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);TEST_OPENGL_ERROR();
 }
 
 void init_GL()
@@ -157,7 +206,7 @@ void idle()
     glUniform1f(time_location, time);
 
     // Projection matrix : 45° Field of View, 4:3 ratio, display range : 0.1 unit <-> 100 units
-    glm::mat4 Projection = glm::perspective(glm::radians(45.0f), 1.0f, 0.1f, 100.0f);
+    glm::mat4 Projection = glm::perspective(glm::radians(45.0f), 4.0f/3.0f, 0.5f, 100.0f);
 
     // Or, for an ortho camera :
     //glm::mat4 Projection = glm::ortho(-10.0f,10.0f,-10.0f,10.0f,0.0f,100.0f); // In world coordinates
@@ -169,23 +218,30 @@ void idle()
     float camX = 4.5 * cos(0.5 * time);
     float camZ = 4.5 * sin(0.5 * time);
     glm::mat4 View;
-    View = glm::lookAt(glm::vec3(0.0f, 0.0f, 3.0f),
-                   glm::vec3(0.0f, 0.0f, 0.0f),
-                   glm::vec3(0.0f, 1.0f, 0.0f));
-   // View = glm::lookAt(glm::vec3(camX, 1.3, camZ), glm::vec3(0.0, 0.0, 0.0), glm::vec3(0.0, 1.0, 0.0));
+
+    glm::vec3 camera_position(0.f, 0.f, -4.f);
+    glm::vec3 camera_look_at(0.f, 0.f, 0.f);
+    glm::vec3 up (0.0f, 1.0f, 0.0f);
+
+    View = glm::lookAt(
+                        camera_position,//camera
+                        camera_look_at,
+                        up
+                        );
 
     // Model matrix : an identity matrix (model will be at the origin)
     glm::mat4 Model = glm::mat4(1.0f);
     // Our ModelViewProjection : multiplication of our 3 matrices
     glm::mat4 mvp = Projection * View * Model;
 
-
-    glm::vec3 v(camX + 10, 10, camZ);
-    GLint camera_location = glGetUniformLocation(program_id, "camera_");
-    glUniform3fv(camera_location, 1, &v[0]);
-
     GLint mvp_location = glGetUniformLocation(program_id, "MVP");
     glUniformMatrix4fv(mvp_location, 1, GL_FALSE, &mvp[0][0]);
+
+    GLint look_at_location = glGetUniformLocation(program_id, "camera_look_at");
+    glUniform3fv(look_at_location, 1, &camera_look_at[0]);
+
+    GLint camera_location = glGetUniformLocation(program_id, "camera_position");
+    glUniform3fv(camera_location, 1, &camera_position[0]);
 
     glutPostRedisplay();
 }
@@ -198,7 +254,7 @@ void display()
 
     glBindVertexArray(VertexArrayID[0]);TEST_OPENGL_ERROR();
 
-    glDrawArrays(GL_TRIANGLES, 0, 6);TEST_OPENGL_ERROR();
+    glDrawArrays(GL_TRIANGLES, 0, 36);TEST_OPENGL_ERROR();
 
     glBindVertexArray(0);
 

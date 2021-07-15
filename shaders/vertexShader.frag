@@ -5,14 +5,13 @@ layout(location = 1) in vec2 uv;
 
 in vec3 camera;
 
-out vec2 text_coord;
 out vec3 pos_;
+out vec4 position_;
 uniform mat4 MVP;
 
 void main()
 {
-    pos_ = (position + 1) / 2;
-    text_coord = uv;
-    //gl_Position = vec4(position, 1);
-    gl_Position = vec4(position,1);
+    pos_ = position;
+    gl_Position = MVP * vec4(position,1);
+    position_ = gl_Position;
 }
