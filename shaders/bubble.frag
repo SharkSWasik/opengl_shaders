@@ -159,7 +159,7 @@ float sd_drop(vec3 p, vec2 offset, float ball_size, float h_ripple, float starti
 }
 
 // Function generating the scene by returning the distance to the closest object
-struct distance dist(vec3 p)
+distance dist(vec3 p)
 {
     // Default values really far as we are searching for the closest
     float ripple = 2000.;
@@ -191,7 +191,7 @@ struct distance dist(vec3 p)
 
     // Get closest object that will be drawn
     float closest = min(ripple, drop);
-    struct distance res = {ripple, drop, min(ripple, drop), drop_height};
+    distance res = {ripple, drop, min(ripple, drop), drop_height};
     return res;
 }
 
@@ -209,7 +209,7 @@ vec3 lighting(vec3 direction)
 }
 
 // Function used to change colors of the scenes depending on the closest object
-vec3 change_colors(struct distance dist, vec3 normal, vec3 p)
+vec3 change_colors(distance dist, vec3 normal, vec3 p)
 {
     // Default color
     vec3 color_res = vec3(0);
@@ -265,7 +265,7 @@ vec3 get_normal(vec3 p)
 vec4 raymarcher(vec3 p, vec3 ray_direction)
 {
     vec4 result = vec4(p, 0);
-    struct distance dist_obj;
+    distance dist_obj;
 
     // The maximum distance we can see
     float max_distance = 500.;
