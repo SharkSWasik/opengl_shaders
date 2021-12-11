@@ -15,58 +15,68 @@ namespace mygl
     {
     }
 
-    Program *Program::make_program(std::string &vertex_shader_src,
-                                   std::string &fragment_shaders)
+    void Program::insert_fragment(std::string shader)
     {
-        Program *program = new Program();
-        program->ready_m = true;
+        shaders_id.push_back(glCreateShader(GL_FRAGMENT_SHADER));
+        shaders.push_back(shader);
+    }
 
-        //Create empty shaders
-        auto my_vertex_shader = glCreateShader(GL_VERTEX_SHADER);
-        auto my_fragment_shader = glCreateShader(GL_FRAGMENT_SHADER);
+    void Program::insert_vertex(std::string shader)
+    {
+        shaders_id.push_back(glCreateShader(GL_VERTEX_SHADER));
+        shaders.push_back(shader);
+    }
 
-        auto char_vertex_src = vertex_shader_src.c_str();
-        auto char_fragment_src = fragment_shaders.c_str();
+    void Program::insert_compute(std::string shader)
+    {
+        shaders_id.push_back(glCreateShader(GL_COMPUTE_SHADER));
+        shaders.push_back(shader);
+    }
+
+    Program *Program::make_program()
+    {
+        ready_m = true;
 
         //Send the vertex shader source code to GL
-        glShaderSource(my_vertex_shader, 1, &char_vertex_src, NULL);
-        glShaderSource(my_fragment_shader, 1, &char_fragment_src, NULL);
-
-        //Compile the vertex shader
-        glCompileShader(my_vertex_shader);
-        glCompileShader(my_fragment_shader);
-
-        if (!program->get_log_shader(my_vertex_shader))
+        for (size_t i = 0; i < shaders.size(); i++)
         {
-            //Don't leak the shader
-            glDeleteShader(my_vertex_shader);
-            program->ready_m = false;
+            auto shader = shaders[i].c_str();
+            glShaderSource(shaders_id[i], 1, &shader, NULL);
         }
 
-        if (!program->get_log_shader(my_fragment_shader))
+        //Compile the vertex shade
+        for (size_t i = 0; i < shaders.size(); i++)
+            glCompileShader(shaders_id[i]);
+
+        for (size_t i = 0; i < shaders.size(); i++)
         {
-            glDeleteShader(my_fragment_shader);
-            program->ready_m = false;
+            if (!get_log_shader(shaders_id[i]))
+            {
+                //Don't leak the shader
+                glDeleteShader(shaders_id[i]);
+                ready_m = false;
+            }
         }
 
         //attach shaders to our program
-        glAttachShader(program->my_program, my_vertex_shader);
-        glAttachShader(program->my_program, my_fragment_shader);
+        for (size_t i = 0; i < shaders.size(); i++)
+            glAttachShader(my_program, shaders_id[i]);
 
-        glLinkProgram(program->my_program);
+        glLinkProgram(my_program);
 
-        if (!program->get_log_program())
+        if (!get_log_program(my_program))
         {
-            glDeleteProgram(program->my_program);
-            glDeleteProgram(my_vertex_shader);
-            glDeleteProgram(my_fragment_shader);
-            program->ready_m = false;
+            glDeleteProgram(my_program);
+            for (size_t i = 0; i < shaders.size(); i++)
+                glDeleteProgram(shaders_id[i]);
+            ready_m = false;
         }
 
         // Always detach shaders after a successful link.
-        glDetachShader(program->my_program, my_vertex_shader);
-        glDetachShader(program->my_program, my_fragment_shader);
-        return program;
+        for (size_t i = 0; i < shaders.size(); i++)
+            glDetachShader(my_program, shaders_id[i]);
+
+        return this;
     }
 
     //log report for shader
@@ -88,18 +98,18 @@ namespace mygl
     }
 
     //log report for program
-    GLint Program::get_log_program()
+    GLint Program::get_log_program(GLuint program)
     {
         GLint isLinked = 0;
-        glGetProgramiv(my_program, GL_LINK_STATUS, (int *)&isLinked);
+        glGetProgramiv(program, GL_LINK_STATUS, (int *)&isLinked);
 
         if (isLinked == GL_FALSE)
         {
             GLint maxLength = 0;
-            glGetProgramiv(my_program, GL_INFO_LOG_LENGTH, &maxLength);
+            glGetProgramiv(program, GL_INFO_LOG_LENGTH, &maxLength);
 
             std::vector<GLchar> infoLog(maxLength);
-            glGetProgramInfoLog(my_program, maxLength, &maxLength, &infoLog[0]);
+            glGetProgramInfoLog(program, maxLength, &maxLength, &infoLog[0]);
 
             std::cout << "error while linking program" << std::endl;
         }

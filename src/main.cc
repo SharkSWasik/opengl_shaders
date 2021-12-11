@@ -24,6 +24,7 @@
 
 //vbo for vertices and texture coords
 GLuint program_id;
+GLuint cs_program_id;
 //vao buffers ids
 GLuint VertexArrayID[2];
 
@@ -245,6 +246,12 @@ void idle()
 //loop function
 void display()
 {
+    //compute shader
+    glUseProgram(cs_program_id);TEST_OPENGL_ERROR();
+    glDispatchCompute(16*16, 1, 1);TEST_OPENGL_ERROR();
+    glMemoryBarrier(GL_ALL_BARRIER_BITS);
+
+    glUseProgram(program_id);TEST_OPENGL_ERROR();
     // clear the color buffer before each drawing
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -257,6 +264,7 @@ void display()
     // swap the buffers and hence show the buffers
     // content to the screen
     glutSwapBuffers();
+
 }
 
 void init_glut(int &argc, char *argv[])
@@ -283,7 +291,7 @@ bool init_glew() {
 
 int main(int argc, char *argv[])
 {
-    if (argc < 3)
+    if (argc < 4)
     {
         std::cerr << "missing vertexShader and/or fragmentShader path" << std::endl;
         exit(EXIT_FAILURE);
@@ -302,16 +310,29 @@ int main(int argc, char *argv[])
     //loading shaders file
     auto vertex = load_file(argv[1]);
     auto fragment = load_file(argv[2]);
+    auto compute = load_file(argv[3]);
 
-    //shader setup
-    auto prog = mygl::Program::make_program(vertex, fragment);
+    //main program
+    auto prog = new mygl::Program();
+    prog->insert_vertex(vertex);
+    prog->insert_fragment(fragment);
+    prog->make_program();
+
+    //compute program
+    auto prog_compute = new mygl::Program();
+    prog_compute->insert_compute(compute);
+    prog_compute->make_program();
+
     program_id = prog->my_program;
+    cs_program_id = prog_compute->my_program;
 
-    if (!prog->is_ready())
+    if (!prog->is_ready() || !prog_compute->is_ready())
     {
         std::cerr << "prog is not ready" << std::endl;
         exit(EXIT_FAILURE);
     }
+
+    prog_compute->use();
     prog->use();
 
     init_VBO();
@@ -319,5 +340,6 @@ int main(int argc, char *argv[])
 
     glutMainLoop();
     delete prog;
+    delete prog_compute;
     return 0;
 }
