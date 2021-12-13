@@ -24,6 +24,7 @@ add_executable( myOpengl
     src/image.cc
     src/image_io.cc
     src/main.cc
+    src/camera.cc
     )
 
 #-----------linking step

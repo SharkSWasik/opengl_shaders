@@ -2,20 +2,13 @@
 #include "GL/freeglut.h"
 #include "GL/glu.h"
 
-#include <glm/ext/vector_float3.hpp>
-#include <glm/vec3.hpp> // glm::vec3
-#include <glm/vec4.hpp> // glm::vec4
-#include <glm/mat4x4.hpp> // glm::mat4
-#include <glm/ext/matrix_transform.hpp> // glm::translate, glm::rotate, glm::scale
-#include <glm/ext/matrix_clip_space.hpp> // glm::perspective
-#include <glm/ext/scalar_constants.hpp> // glm::pi
-
 #include "program.hh"
 #include "image.hh"
 #include "image_io.hh"
 #include "util.hh"
 #include "matrix4.hh"
 #include "cube.hh"
+#include "camera.hh"
 
 
 #include <GL/freeglut_std.h>
@@ -26,8 +19,10 @@
 //vbo for vertices and texture coords
 GLuint program_id;
 GLuint cs_program_id;
+mygl::Camera *camera;
 //vao buffers ids
 GLuint VertexArrayID[2];
+GLuint vboId[4];
 
 #define TEST_OPENGL_ERROR()                                                             \
   do {									\
@@ -42,16 +37,30 @@ void init_VAO()
     glBindVertexArray(VertexArrayID[0]);TEST_OPENGL_ERROR();
 }
 
+    std::vector<float> ripples = {
+            1.5, 1.5,
+            1.5, 1.5,
+            1.5, 1.5,
+            1.5, 1.5,
+            1.5, 1.5,
+            1.5, 1.5,
+        };
+//cubemap vertices positions
+    std::vector<GLfloat> drops = {
+    // positions
+
+    -10.0f, -10.0f, -10.0f,
+};
+
 // init vertex buffer;
 void init_VBO()
 {
-    GLuint vboId[2];
     GLint vertex_location = glGetAttribLocation(program_id, "position");TEST_OPENGL_ERROR();
     GLint uv_location = glGetAttribLocation(program_id, "uv");TEST_OPENGL_ERROR();
 
     // reservation of buffer
     init_VAO();
-    glGenBuffers(2, vboId);TEST_OPENGL_ERROR();
+    glGenBuffers(4, vboId);TEST_OPENGL_ERROR();
 
     //teture coordonates for triangles
     if (uv_location != -1)
@@ -73,36 +82,23 @@ void init_VBO()
         glBufferData(GL_ARRAY_BUFFER, uv.size() * sizeof(float), uv.data(), GL_STATIC_DRAW);TEST_OPENGL_ERROR();
 
         //how to read buffer
-        glVertexAttribPointer(
-                uv_location,        //location
-                2,                  // size one vertex
-                GL_FLOAT,           // type
-                GL_FALSE,           // normalize
-                0,                  // stride
-                0            // array buffer offset
-                );TEST_OPENGL_ERROR();
-
+        glVertexAttribPointer(uv_location, 2, GL_FLOAT,GL_FALSE, 0, 0);TEST_OPENGL_ERROR();
         glEnableVertexAttribArray(uv_location);TEST_OPENGL_ERROR();
     }
+    if (vertex_location != -1)
+    {
+        //activation of buffer, vbo type
+        glBindBuffer(GL_ARRAY_BUFFER, vboId[1]);TEST_OPENGL_ERROR();
 
+        //allocation
+        glBufferData(GL_ARRAY_BUFFER, cube_vertices.size() * sizeof(GLfloat), cube_vertices.data(), GL_DYNAMIC_COPY);TEST_OPENGL_ERROR();
+
+        //how to read buffer
+        glVertexAttribPointer(vertex_location,3, GL_FLOAT, GL_FALSE, 0, 0);TEST_OPENGL_ERROR();
+
+        glEnableVertexAttribArray(vertex_location);TEST_OPENGL_ERROR();
+    }
     //activation of buffer, vbo type
-    glBindBuffer(GL_ARRAY_BUFFER, vboId[1]);TEST_OPENGL_ERROR();
-
-    //allocation
-    glBufferData(GL_ARRAY_BUFFER, cube_vertices.size() * sizeof(GLfloat), cube_vertices.data(), GL_STATIC_DRAW);TEST_OPENGL_ERROR();
-
-    //how to read buffer
-    glVertexAttribPointer(
-            vertex_location,    //location
-            3,                  // size one vertex
-            GL_FLOAT,           // type
-            GL_FALSE,           // normalize
-            0,                  // stride
-            0            // array buffer offset
-            );TEST_OPENGL_ERROR();
-
-    glEnableVertexAttribArray(vertex_location);TEST_OPENGL_ERROR();
-
     glBindVertexArray(VertexArrayID[0]);
 }
 
@@ -154,46 +150,23 @@ void init_GL()
     glClearColor(0, 0, 0, 0);
 }
 
-
 void idle()
 {
     GLint time_location = glGetUniformLocation(program_id, "time");
     float time = glutGet(GLUT_ELAPSED_TIME) / 1000.;
     glUniform1f(time_location, time);
 
-    // Projection matrix : 45° Field of View, 4:3 ratio, display range : 0.1 unit <-> 100 units
-    glm::mat4 Projection = glm::perspective(glm::radians(45.0f), 4.0f/3.0f, 0.5f, 100.0f);
-
-    // if we want to move
-    //float radius = 10.0f;
-    //float camX = sin(time / 10) * radius;
-    //float camZ = cos(time / 10) * radius;
-
-    // Camera matrix
-    glm::mat4 View;
-    glm::vec3 camera_position(0., 1.f, -6.f);
-    glm::vec3 camera_look_at(0.f, 0.f, 0.f);
-    glm::vec3 up (0.0f, 1.0f, 0.0f);
-
-    View = glm::lookAt(
-                        camera_position,//camera
-                        camera_look_at,
-                        up
-                        );
-
-    // Model matrix : an identity matrix (model will be at the origin)
-    glm::mat4 Model = glm::mat4(1.0f);
     // Our ModelViewProjection : multiplication of our 3 matrices
-    glm::mat4 mvp = Projection * View * Model;
+    glm::mat4 mvp = camera->m_projection * camera->m_view * camera->m_identity;
 
     GLint mvp_location = glGetUniformLocation(program_id, "MVP");
     glUniformMatrix4fv(mvp_location, 1, GL_FALSE, &mvp[0][0]);
 
     GLint look_at_location = glGetUniformLocation(program_id, "camera_look_at");
-    glUniform3fv(look_at_location, 1, &camera_look_at[0]);
+    glUniform3fv(look_at_location, 1, &camera->m_camera_look_at[0]);
 
     GLint camera_location = glGetUniformLocation(program_id, "camera_position");
-    glUniform3fv(camera_location, 1, &camera_position[0]);
+    glUniform3fv(camera_location, 1, &camera->m_camera_position[0]);
 
     glutPostRedisplay();
 }
@@ -201,9 +174,17 @@ void idle()
 //loop function
 void display()
 {
+
     //compute shader
     glUseProgram(cs_program_id);TEST_OPENGL_ERROR();
-    glDispatchCompute(16*16, 1, 1);TEST_OPENGL_ERROR();
+    /*glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, vboId[2]);
+
+    glBufferData(GL_SHADER_STORAGE_BUFFER, ripples.size() * sizeof(GLfloat), ripples.data(), GL_STATIC_DRAW);TEST_OPENGL_ERROR();
+
+    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, vboId[3]);
+
+    glBufferData(GL_SHADER_STORAGE_BUFFER, drops.size() * sizeof(GLfloat), drops.data(), GL_STATIC_DRAW);TEST_OPENGL_ERROR();*/
+    glDispatchCompute(8, 1, 1);TEST_OPENGL_ERROR();
     glMemoryBarrier(GL_ALL_BARRIER_BITS);
 
     glUseProgram(program_id);TEST_OPENGL_ERROR();
@@ -222,6 +203,16 @@ void display()
 
 }
 
+void KeyboardCB(unsigned char key, int mouse_x, int mouse_y)
+{
+    camera->enterkeyboard(key);
+}
+
+void KeyboardCB(int key, int mouse_x, int mouse_y)
+{
+    camera->enterkeyboard(key);
+}
+
 void init_glut(int &argc, char *argv[])
 {
     glutInit(&argc, argv);
@@ -232,6 +223,8 @@ void init_glut(int &argc, char *argv[])
     glutInitWindowPosition(10, 10);
     glutCreateWindow("Test OpenGL - POGL");
     glutDisplayFunc(display);
+    glutKeyboardFunc(KeyboardCB);
+    glutSpecialFunc(KeyboardCB);
     glutIdleFunc(idle);
 }
 
@@ -252,6 +245,7 @@ int main(int argc, char *argv[])
         exit(EXIT_FAILURE);
     }
 
+    camera = new mygl::Camera();
     init_glut(argc, argv);
 
     if (!init_glew())
@@ -281,9 +275,14 @@ int main(int argc, char *argv[])
     program_id = prog->my_program;
     cs_program_id = prog_compute->my_program;
 
-    if (!prog->is_ready() || !prog_compute->is_ready())
+    if (!prog->is_ready())
     {
-        std::cerr << "prog is not ready" << std::endl;
+        std::cerr << "main prog is not ready" << std::endl;
+        exit(EXIT_FAILURE);
+    }
+    if (!prog_compute->is_ready())
+    {
+        std::cerr << "prog compute is not ready" << std::endl;
         exit(EXIT_FAILURE);
     }
 
