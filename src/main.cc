@@ -13,6 +13,7 @@
 
 #include <GL/freeglut_std.h>
 #include <cstdlib>
+#include <glm/ext/matrix_transform.hpp>
 #include <math.h>
 #include <vector>
 
@@ -106,13 +107,19 @@ void init_VBO()
 void init_textures()
 {
 
-    std::vector<std::string> sky_faces = {"../textures/skybox_px.tga",
+   /* std::vector<std::string> sky_faces = {"../textures/skybox_px.tga",
                                         "../textures/skybox_nx.tga",
                                         "../textures/skybox_py.tga",
                                         "../textures/skybox_ny.tga",
                                         "../textures/skybox_pz.tga",
                                         "../textures/skybox_nz.tga"
-                                        };
+                                        };*/
+    std::vector<std::string> sky_faces = {"../textures/skybox/right.tga",
+                                        "../textures/skybox/left.tga",
+                                        "../textures/skybox/top.tga",
+                                        "../textures/skybox/bottom.tga",
+                                        "../textures/skybox/front.tga",
+                                        "../textures/skybox/back.tga"};
     GLuint texture_id;
     GLint tex_location;
 
@@ -158,6 +165,7 @@ void idle()
 
     // Our ModelViewProjection : multiplication of our 3 matrices
     glm::mat4 mvp = camera->m_projection * camera->m_view * camera->m_identity;
+//  mvp = glm::rotate(mvp, -camera->yarn, glm::vec3(0.0,1.0,0.0)); // Along Y axis
 
     GLint mvp_location = glGetUniformLocation(program_id, "MVP");
     glUniformMatrix4fv(mvp_location, 1, GL_FALSE, &mvp[0][0]);
@@ -205,12 +213,17 @@ void display()
 
 void KeyboardCB(unsigned char key, int mouse_x, int mouse_y)
 {
-    camera->enterkeyboard(key);
+    camera->enterkeyboard(key, mouse_x, mouse_y);
 }
 
 void KeyboardCB(int key, int mouse_x, int mouse_y)
 {
-    camera->enterkeyboard(key);
+    camera->enterkeyboard(key, mouse_x, mouse_y);
+}
+
+void MouseCB(int mouse_x, int mouse_y)
+{
+    camera->entermouse(mouse_x, mouse_y);
 }
 
 void init_glut(int &argc, char *argv[])
@@ -225,6 +238,7 @@ void init_glut(int &argc, char *argv[])
     glutDisplayFunc(display);
     glutKeyboardFunc(KeyboardCB);
     glutSpecialFunc(KeyboardCB);
+    glutPassiveMotionFunc(MouseCB);
     glutIdleFunc(idle);
 }
 

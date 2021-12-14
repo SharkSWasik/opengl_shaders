@@ -4,13 +4,13 @@ layout(location = 0) in vec3 position;
 layout(location = 1) in vec2 uv;
 in vec2 ripples;
 in vec3 drops;
-
 in vec3 camera;
 
 out vec3 pos_;
 out vec4 position_;
 out vec3 drops_;
 out vec2 ripples_;
+out vec2 uv_;
 
 uniform mat4 MVP;
 
@@ -21,6 +21,5 @@ void main()
     position_ = gl_Position;
     ripples_ = ripples;
     drops_ = drops;
-    if (uv == 121)
-        gl_Position = vec4(0,0,0,0);
+    uv_ = uv;
 }

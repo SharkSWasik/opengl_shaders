@@ -1,5 +1,6 @@
 #pragma once
 
+#include "GL/glew.h"
 #include "GL/glu.h"
 #include "GL/freeglut.h"
 
@@ -36,11 +37,21 @@ namespace mygl
 
             // Model matrix : an identity matrix (model will be at the origin)
             m_identity = glm::mat4(1.0f);
+
+            centerX = GLUT_WINDOW_WIDTH / 2;
+            centerY = GLUT_WINDOW_HEIGHT / 2;
         }
         ~Camera();
 
-        void enterkeyboard(int key);
-        void enterkeyboard(unsigned char key);
+        void enterkeyboard(int key, int mouse_x, int mouse_y);
+        void enterkeyboard(unsigned char key, int mouse_x, int mouse_y);
+
+        void entermouse(int mouse_x, int mouse_y);
+        
+        float pitch;
+        float yarn;
+        int centerX;
+        int centerY;
 
         glm::vec3 m_camera_look_at;
         glm::vec3 m_camera_position;
