@@ -11,6 +11,7 @@ uniform vec3 camera_position;
 // Linkage into shader from previous stage
 in vec3 pos_;
 in vec4 position_;
+vec4 position_v2;
 
 // Linkage out of the shader to next stage
 out vec4 output_color;
@@ -220,7 +221,7 @@ vec3 change_colors(distance dist, vec3 normal, vec3 p)
         if (dist.drop > noise(p.xy))
         {
             // Calculate water color depending on the reflect the diffusion
-            vec3 I = normalize(position_.xyz + vec3(1,0,0));
+            vec3 I = normalize(position_v2.xyz);
             vec3 R = reflect(I, normalize(normal));
             vec3 reflect_color = texture(sky_sampler, R).xyz;
             vec3 refrated = vec3(0.1f, 0.19f, 0.22f) + diffuse(normal, vec3(0.3f,0.5f,0.2f), 80.) * vec3(0.8f, 0.9f,0.6f);
@@ -286,11 +287,33 @@ vec4 raymarcher(vec3 p, vec3 ray_direction)
     }
     // If there were no object in our ray, draw the texture of the sky box
     if (result.w > max_distance)
-        col = texture(sky_sampler, position_.xyz + vec3(1,0,0)).xyz;
+        col = texture(sky_sampler, position_v2.xyz).xyz;
     // We found an object, lets find its color
     else
         col = change_colors(dist_obj, get_normal(result.xyz), result.xyz);
     return result;
+}
+
+mat4 rotationX( in float angle ) {
+	return mat4(	1.0,		0,			0,			0,
+			 		0, 	cos(angle),	-sin(angle),		0,
+					0, 	sin(angle),	 cos(angle),		0,
+					0, 			0,			  0, 		1);
+}
+
+mat4 rotationY( in float angle ) {
+	return mat4(	cos(angle),		0,		sin(angle),	0,
+			 				0,		1.0,			 0,	0,
+					-sin(angle),	0,		cos(angle),	0,
+							0, 		0,				0,	1);
+}
+
+
+mat4 rotationZ( in float angle ) {
+	return mat4(	cos(angle),		-sin(angle),	0,	0,
+			 		sin(angle),		cos(angle),		0,	0,
+							0,				0,		1,	0,
+							0,				0,		0,	1);
 }
 
 // Our main function calling camera, raymarcher, lighting, ...
@@ -300,11 +323,11 @@ void main_image(out vec4 out_color, in vec2 fragCoord)
     animation_time = mod(time, 15.);
 
     // Resolution and camera position given by uniform
-    vec2 res = resolution.xy;
     vec3 pos = camera_position;
-
     // Raymarcher
-    vec3 ray_direction = normalize(position_.xyz);
+    position_v2 = normalize(position_ * rotationY(animation_time));
+    vec3 ray_direction = position_v2.xyz;
+    
     vec4 march = raymarcher(pos, ray_direction);
 
     // Global lighting
