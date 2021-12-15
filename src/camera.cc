@@ -2,8 +2,10 @@
 #include "iostream"
 #include <GL/freeglut_std.h>
 #include <glm/ext/matrix_transform.hpp>
+#include <glm/ext/vector_float2.hpp>
 #include <glm/ext/vector_float3.hpp>
 #include <glm/gtx/rotate_vector.hpp>
+
 
 namespace mygl {
 
@@ -12,16 +14,6 @@ namespace mygl {
         float speed = 0.1f;
         glm::vec3 target(0.0f, 0.0f, 1.0f);
         glm::vec3 left_dir = glm::cross(target, m_up);
-        std::cout << mouse_x << std::endl;
-        std::cout << mouse_y << std::endl;
-
-       /* if (mouse_x != 0)
-        {
-            m_view[0] -= static_cast<float>(mouse_x) / 4;
-        }
-
-        if (mouse_y != 0)
-           m_view[1] -= static_cast<float>(mouse_y) / 4;*/
 
         switch(key){
             case GLUT_KEY_UP:
@@ -44,15 +36,6 @@ namespace mygl {
         glm::vec3 target(0.0f, 0.0f, 1.0f);
         glm::vec3 left_dir = glm::cross(target, m_up);
 
-        std::cout << mouse_x << std::endl;
-        std::cout << mouse_y << std::endl;
-
-        /*if (mouse_x != 0)
-            m_view[0] -= static_cast<float>(mouse_x) / 4;
-
-        if (mouse_y != 0)
-           m_view[1] -= static_cast<float>(mouse_y) / 4;*/
-
         switch(key){
             case GLUT_KEY_UP:
                 m_camera_position += (target * speed);
@@ -68,35 +51,42 @@ namespace mygl {
                 break;
         }
     }
-    void Camera::entermouse(int mouse_x, int mouse_y)
+    void Camera::entermouse(int x, int y)
     {
 
-        float deltaX = (mouse_x - GLUT_WINDOW_WIDTH / 2);
-        float deltaY = (mouse_y - GLUT_WINDOW_HEIGHT / 2);
+        glm::vec2 angles(0,0);
 
-        yarn = (float)deltaX/100000.0;
-        pitch = (float)deltaY/100000.0;
+        int ww = glutGet(GLUT_WINDOW_WIDTH);
+        int wh = glutGet(GLUT_WINDOW_HEIGHT);
+        dx = x - ww / 2;
+        dy = y - wh / 2;
+        const float mousespeed = 0.001;
 
-        if (mouse_x > centerX)
-        {
-            m_view = glm::rotate(m_view, yarn, glm::vec3(0, 1.0,0.0)); // Along X axis
-        }
-        else
-        {
-            m_view = glm::rotate(m_view, -yarn, glm::vec3(0, 1.0, 0.0)); // Along X axis
-        }
+        angles.x += dx * mousespeed;
+        angles.y -= dy * mousespeed;
 
-        if (mouse_y > centerY)
-        {
-            m_view = glm::rotate(m_view, -pitch, glm::vec3(1.0, 0, 0)); // Along X axis
-        }
-        else
-        {
-            m_view = glm::rotate(m_view, pitch, glm::vec3(1.0, 0, 0)); // Along X axis
-        }
+        m_mouse = angles;
 
-        centerX = mouse_x;
-        centerY = mouse_y;
+      /*  if(angles.x < -M_PI)
+            angles.x += M_PI * 2;
+        else if(angles.x > M_PI)
+            angles.x -= M_PI * 2;
 
+        if(angles.y < -M_PI / 2)
+            angles.y = -M_PI / 2;
+        if(angles.y > M_PI / 2)
+            angles.y = M_PI / 2;
+        std::cout << m_camera_position.x <<  " " << m_camera_position.z<< std::endl;
+
+        glm::vec3 lookat;
+        lookat.x = sinf(angles.x) * cosf(angles.y);
+        lookat.y = sinf(angles.y);
+        lookat.z = cosf(angles.x) * cosf(angles.y);
+        m_camera_look_at = lookat;
+        m_view = glm::lookAt(
+                    m_camera_position,//camera
+                    m_camera_look_at,
+                    m_up
+                    );*/
     }
 }

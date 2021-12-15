@@ -7,6 +7,7 @@ uniform samplerCube sky_sampler;
 uniform mat4 MVP;
 uniform vec3 camera_look_at;
 uniform vec3 camera_position;
+uniform vec2 mouse;
 
 // Linkage into shader from previous stage
 in vec3 pos_;
@@ -269,7 +270,7 @@ vec4 raymarcher(vec3 p, vec3 ray_direction)
     distance dist_obj;
 
     // The maximum distance we can see
-    float max_distance = 500.;
+    float max_distance = 600.;
 
     // Number of steps possible to find the closest object
     for(int i = 0; i < 99; i++)
@@ -325,7 +326,7 @@ void main_image(out vec4 out_color, in vec2 fragCoord)
     // Resolution and camera position given by uniform
     vec3 pos = camera_position;
     // Raymarcher
-    position_v2 = normalize(position_ * rotationY(animation_time));
+    position_v2 = normalize(position_ * rotationX(-mouse[1]) * rotationY(mouse[0]));
     vec3 ray_direction = position_v2.xyz;
     
     vec4 march = raymarcher(pos, ray_direction);

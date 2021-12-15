@@ -176,6 +176,9 @@ void idle()
     GLint camera_location = glGetUniformLocation(program_id, "camera_position");
     glUniform3fv(camera_location, 1, &camera->m_camera_position[0]);
 
+    GLint mouse_location = glGetUniformLocation(program_id, "mouse");
+    glUniform2fv(mouse_location, 1, &camera->m_mouse[0]);
+    
     glutPostRedisplay();
 }
 

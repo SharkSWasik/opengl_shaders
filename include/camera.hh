@@ -40,6 +40,8 @@ namespace mygl
 
             centerX = GLUT_WINDOW_WIDTH / 2;
             centerY = GLUT_WINDOW_HEIGHT / 2;
+            wrap = false;
+            m_mouse = glm::vec2(0,0);
         }
         ~Camera();
 
@@ -52,6 +54,9 @@ namespace mygl
         float yarn;
         int centerX;
         int centerY;
+        int dx;
+        int dy;
+        bool wrap;
 
         glm::vec3 m_camera_look_at;
         glm::vec3 m_camera_position;
@@ -59,5 +64,6 @@ namespace mygl
         glm::mat4 m_projection;
         glm::mat4 m_view;
         glm::mat4 m_identity;
+        glm::vec2 m_mouse;
     };
 }
