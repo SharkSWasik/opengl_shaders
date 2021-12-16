@@ -103,6 +103,11 @@ void init_VBO()
     glBindVertexArray(VertexArrayID[0]);
 }
 
+    GLint img_location;
+    GLuint img_texture;
+    tifo::rgb24_image *raymarch;
+    GLuint texture_id;
+    GLint tex_location;
 //textures cubemap initiation
 void init_textures()
 {
@@ -120,8 +125,7 @@ void init_textures()
                                         "../textures/skybox/bottom.tga",
                                         "../textures/skybox/front.tga",
                                         "../textures/skybox/back.tga"};
-    GLuint texture_id;
-    GLint tex_location;
+
 
     glGenTextures(1, &texture_id);TEST_OPENGL_ERROR();
     glActiveTexture(GL_TEXTURE0);TEST_OPENGL_ERROR();
@@ -133,7 +137,7 @@ void init_textures()
     {
         tifo::rgb24_image *sky = tifo::load_image(sky_faces[i].c_str());
         //generation of texture
-        glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGB, sky->sx, sky->sy, 0, GL_RGB, GL_UNSIGNED_BYTE, sky->pixels);TEST_OPENGL_ERROR();
+        glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGBA8, sky->sx, sky->sy, 0, GL_RGB, GL_UNSIGNED_BYTE, sky->pixels);TEST_OPENGL_ERROR();
     }
 
 
@@ -146,6 +150,31 @@ void init_textures()
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);TEST_OPENGL_ERROR();
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);TEST_OPENGL_ERROR();
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);TEST_OPENGL_ERROR();
+    
+    raymarch = tifo::load_image(sky_faces[1].c_str());
+
+    glGenTextures(1, &img_texture);TEST_OPENGL_ERROR();
+    glActiveTexture(GL_TEXTURE1);TEST_OPENGL_ERROR();
+
+    //activation of texture
+    //glBindImageTexture(0, img_texture, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA);TEST_OPENGL_ERROR();
+    glBindTexture(GL_TEXTURE_2D, img_texture);TEST_OPENGL_ERROR();
+
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, raymarch->sx, raymarch->sy, 0, GL_RGB, GL_UNSIGNED_BYTE, raymarch->pixels);TEST_OPENGL_ERROR();
+    
+    img_location = glGetUniformLocation(program_id, "raymarch");TEST_OPENGL_ERROR();
+    glUniform1i(img_location, 1);TEST_OPENGL_ERROR();
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+
+   // glGenerateMipmap(GL_TEXTURE_2D);TEST_OPENGL_ERROR();
+
+    //putting cubemap in uniform vairable
+
+
 }
 
 void init_GL()
@@ -164,9 +193,14 @@ void idle()
     glUniform1f(time_location, time);
 
     // Our ModelViewProjection : multiplication of our 3 matrices
-    glm::mat4 mvp = camera->m_projection * camera->m_view * camera->m_identity;
-//  mvp = glm::rotate(mvp, -camera->yarn, glm::vec3(0.0,1.0,0.0)); // Along Y axis
+    //  mvp = glm::rotate(mvp, -
+    camera->m_view = glm::lookAt(
+            camera->m_camera_position,//camera
+            camera->m_camera_look_at,
+            camera->m_up
+            ); // Along Y axis
 
+    glm::mat4 mvp = camera->m_projection * camera->m_view * camera->m_identity;
     GLint mvp_location = glGetUniformLocation(program_id, "MVP");
     glUniformMatrix4fv(mvp_location, 1, GL_FALSE, &mvp[0][0]);
 
@@ -187,16 +221,24 @@ void display()
 {
 
     //compute shader
+
+
+    glBindImageTexture(0, img_texture, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA32F);TEST_OPENGL_ERROR();
+
+  /*  for (int i = 0; i < 5; i++)
+        glBindImageTexture(1, texture_id, i, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA8);*/
+
     glUseProgram(cs_program_id);TEST_OPENGL_ERROR();
-    /*glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, vboId[2]);
 
-    glBufferData(GL_SHADER_STORAGE_BUFFER, ripples.size() * sizeof(GLfloat), ripples.data(), GL_STATIC_DRAW);TEST_OPENGL_ERROR();
-
-    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 3, vboId[3]);
-
-    glBufferData(GL_SHADER_STORAGE_BUFFER, drops.size() * sizeof(GLfloat), drops.data(), GL_STATIC_DRAW);TEST_OPENGL_ERROR();*/
-    glDispatchCompute(8, 1, 1);TEST_OPENGL_ERROR();
-    glMemoryBarrier(GL_ALL_BARRIER_BITS);
+   // glDispatchCompute(raymarch->sy, raymarch->sx, 1 );TEST_OPENGL_ERROR();
+    glDispatchCompute(1,1, 1 );TEST_OPENGL_ERROR();
+    glUniform1i(glGetUniformLocation(cs_program_id, "raymarch"), 0);
+    glUniform1i(glGetUniformLocation(cs_program_id, "sky_sampler"), 1);
+    glUniform3fv(glGetUniformLocation(cs_program_id, "camera_position"), 1, &camera->m_camera_position[0]);
+    GLint time_location = glGetUniformLocation(cs_program_id, "time");
+    float time = glutGet(GLUT_ELAPSED_TIME) / 1000.;
+    glUniform1f(time_location, time);
+    glMemoryBarrier( GL_ALL_BARRIER_BITS );TEST_OPENGL_ERROR();
 
     glUseProgram(program_id);TEST_OPENGL_ERROR();
     // clear the color buffer before each drawing
@@ -205,8 +247,6 @@ void display()
     glBindVertexArray(VertexArrayID[0]);TEST_OPENGL_ERROR();
 
     glDrawArrays(GL_TRIANGLES, 0, 36);TEST_OPENGL_ERROR();
-
-    glBindVertexArray(0);
 
     // swap the buffers and hence show the buffers
     // content to the screen
