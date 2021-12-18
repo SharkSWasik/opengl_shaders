@@ -24,7 +24,7 @@ namespace mygl
             m_projection = glm::perspective(glm::radians(45.0f), 4.0f/3.0f, 0.1f, 100.0f);
 
             // Camera matrix
-            m_camera_position = glm::vec3(0., 3.f, 5.f);
+            m_camera_position = glm::vec3(0., 1.f, -6.f);
             m_camera_look_at = glm::vec3(0.f, 0.f, 0.f);
             m_up = glm::vec3(0.0f, 1.0f, 0.0f);
 

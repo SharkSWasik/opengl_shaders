@@ -1,10 +1,11 @@
+
 #version 460
 
 
-layout(local_size_x = 1, local_size_y = 1) in;
+layout(local_size_x = 40, local_size_y = 40) in;
 
 layout(rgba32f, binding=0) uniform image2D raymarch;
-uniform samplerCube sky_sampler;
+layout(rgba32f, binding=1) uniform image2D sky_sampler;
 
 // Global Shader variables
 uniform float time;
@@ -12,9 +13,6 @@ uniform vec3 camera_position;
 
 // Linkage into shader from previous stage
 vec4 position_v2;
-vec2 pos_;
-
-// Linkage out of the shader to next stage
 
 // Usefull defines
 #define PI 3.1415926535897932384626433832795
@@ -168,7 +166,7 @@ distance dist(vec3 p)
     float drop_height;
 
     // Parameters
-    int nb_drops = 8;
+    int nb_drops = 2;
     float max_y = 12.;
     float max_x = 8.;
     float max_time = 10.;
@@ -223,8 +221,8 @@ vec3 change_colors(distance dist, vec3 normal, vec3 p)
             // Calculate water color depending on the reflect the diffusion
             vec3 I = normalize(position_v2.xyz);
             vec3 R = reflect(I, normalize(normal));
-            vec3 reflect_color = texture(sky_sampler, R).xyz;
-            //vec3 reflect_color = imageLoad(sky_sampler, ivec3(R)).xyz;
+            vec3 reflect_color = imageLoad(sky_sampler, ivec2(gl_GlobalInvocationID.xy)).xyz;
+            //vec3 reflect_color = imageLoad(sky_sampler, ivec2(gl_GlobalInvocationID.xy)).xyz;
             vec3 refrated = vec3(0.1f, 0.19f, 0.22f) + diffuse(normal, vec3(0.3f,0.5f,0.2f), 80.) * vec3(0.8f, 0.9f,0.6f);
             vec3 water_color = mix(reflect_color, refrated, 0.4);
 
@@ -288,8 +286,7 @@ vec4 raymarcher(vec3 p, vec3 ray_direction)
     }
     // If there were no object in our ray, draw the texture of the sky box
     if (result.w > max_distance)
-        col = texture(sky_sampler, position_v2.xyz).xyz;
-        //col = imageLoad(sky_sampler, ivec3(position_v2.xyz)).xyz;
+        col = imageLoad(sky_sampler, ivec2(gl_GlobalInvocationID.xy)).xyz;
     // We found an object, lets find its color
     else
         col = change_colors(dist_obj, get_normal(result.xyz), result.xyz);
@@ -321,32 +318,31 @@ mat4 rotationZ( in float angle ) {
 // Our main function calling camera, raymarcher, lighting, ...
 void main()
 {
-    vec4 position_ = vec4(gl_GlobalInvocationID.xyz,0);
-    pos_ = position_.xy;
+    vec2 res = vec2(1200,1200);
+    col = vec3(0);
+
+    //Sample
+    float x = gl_GlobalInvocationID.x - res.x / 2;
+    float y = res.y / 2 - gl_GlobalInvocationID.y;
+    vec4 position_ = vec4(x, y, 1200, 1);
     // Time of our periodic animation
     animation_time = mod(time, 15.);
 
     // Resolution and camera position given by uniform
     vec3 pos = camera_position;
-
     // Raymarcher
-    position_v2 = normalize(position_);// * rotationX(-mouse[1]) * rotationY(mouse[0]));
+    position_v2 = normalize(position_);
     vec3 ray_direction = position_v2.xyz;
     
     vec4 march = raymarcher(pos, ray_direction);
 
     // Global lighting
-    vec3 normal = get_normal(march.xyz);
+    /*vec3 normal = get_normal(march.xyz);
     vec3 refraction_direction = refract(ray_direction,normal,.75);
     vec3 refracted = lighting(refraction_direction);
-    vec3 ambient = lighting(ray_direction)*.5;
+    //  vec3 ambient = lighting(ray_direction)*.5;
 
-    col += mix(refracted,ambient,0.6);
-    imageStore(raymarch, ivec2(gl_GlobalInvocationID.xy), vec4(1,0,0,0));
+    col += mix(refracted, col,0.6);*/
+
+    imageStore(raymarch, ivec2(gl_GlobalInvocationID.xy), vec4(col,1));
 }
-/*void main(void)
-{
-    vec4 pixel = vec4(1.0,0.0,0,0.0);
-//    imageStore(raymarch, ivec2(gl_GlobalInvocationID.xy), vec4(1,0,0,0));}
-    imageStore(raymarch, ivec2(gl_GlobalInvocationID.xy), pixel);
-}*/
