@@ -132,31 +132,33 @@ void init_textures()
     glActiveTexture(GL_TEXTURE0);TEST_OPENGL_ERROR();
 
     //activation of texture
-    glBindTexture(GL_TEXTURE_2D, texture_id);
-/*
+    //glBindTexture(GL_TEXTURE_2D, texture_id);
+    glBindTexture(GL_TEXTURE_CUBE_MAP, texture_id);
+
     for (int i = 0; i < 6; i++)
     {
         tifo::rgb24_image *sky = tifo::load_image(sky_faces[i].c_str());
         //generation of texture
-        glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGBA8, sky->sx, sky->sy, 0, GL_RGB, GL_UNSIGNED_BYTE, sky->pixels);TEST_OPENGL_ERROR();
-    }*/
+        glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGBA32F, sky->sx, sky->sy, 0, GL_RGB, GL_UNSIGNED_BYTE, sky->pixels);TEST_OPENGL_ERROR();
+    }
 
-    tifo::rgb24_image *sky = tifo::load_image(sky_faces[0].c_str());
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, sky->sx, sky->sy, 0, GL_RGB, GL_UNSIGNED_BYTE, sky->pixels);TEST_OPENGL_ERROR();
-    glGenerateMipmapEXT(GL_TEXTURE_2D);
+   // tifo::rgb24_image *sky = tifo::load_image(sky_faces[0].c_str());
+   // glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, sky->sx, sky->sy, 0, GL_RGB, GL_UNSIGNED_BYTE, sky->pixels);TEST_OPENGL_ERROR();
+    //glGenerateMipmapEXT(GL_TEXTURE_2D);
+    glGenerateMipmapEXT(GL_TEXTURE_CUBE_MAP);
 
 
     //putting cubemap in uniform vairable
     tex_location = glGetUniformLocation(program_id, "sky_sampler");TEST_OPENGL_ERROR();
     glUniform1i(tex_location, 0);TEST_OPENGL_ERROR();
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+   // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+    //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
-/*    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);TEST_OPENGL_ERROR();
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);TEST_OPENGL_ERROR();
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);TEST_OPENGL_ERROR();
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);TEST_OPENGL_ERROR();
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);TEST_OPENGL_ERROR();
-    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);TEST_OPENGL_ERROR();*/
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);TEST_OPENGL_ERROR();
     
     raymarch = tifo::load_image(sky_faces[0].c_str());
 
@@ -167,7 +169,7 @@ void init_textures()
     //glBindImageTexture(0, img_texture, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA);TEST_OPENGL_ERROR();
     glBindTexture(GL_TEXTURE_2D, img_texture);TEST_OPENGL_ERROR();
 
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, 1200, 1200, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);TEST_OPENGL_ERROR();
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, 900, 900, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);TEST_OPENGL_ERROR();
     
     img_location = glGetUniformLocation(program_id, "raymarch");TEST_OPENGL_ERROR();
     glUniform1i(img_location, 1);TEST_OPENGL_ERROR();
@@ -234,10 +236,10 @@ void display()
 
 
     glBindImageTexture(0, img_texture, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA32F);TEST_OPENGL_ERROR();
-    glBindImageTexture(1, texture_id, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA32F);TEST_OPENGL_ERROR();
+  //  glBindImageTexture(1, texture_id, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA32F);TEST_OPENGL_ERROR();
 
-  /*  for (int i = 0; i < 5; i++)
-        glBindImageTexture(1, texture_id, i, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA8);*/
+    for (int i = 0; i < 5; i++)
+        glBindImageTexture(1, texture_id, i, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA32F);
 
     glUseProgram(cs_program_id);TEST_OPENGL_ERROR();
 
