@@ -55,14 +55,14 @@ float noise (in vec2 _st) {
 float fbm ( in vec2 _st) {
     float v = 0.1;
     float a = 0.5;
-    vec2 shift = vec2(600.0);
+    vec2 shift = vec2(100.0);
     // Rotate to reduce axial bias
     for (int i = 0; i < NUM_OCTAVES; ++i) {
         v += a * noise(_st);
         _st = _st * 2.0 + shift;
         a *= 0.5;
     }
-    if (v < 0.4)
+    if (v < 0.2)
         return 0;
     else
     {
@@ -97,7 +97,7 @@ vec3 raymarcher(vec3 p, vec3 ray_direction)
 
     // Number of steps possible to find the closest object
     vec4 sum = vec4(0,0,0,0);
-    col = imageLoad(sun_texture, ivec2(sun_pos.x, gl_GlobalInvocationID.y)).xyz;
+    col = imageLoad(sun_texture, ivec2(sun_pos.x, gl_GlobalInvocationID.y * 2)).xyz;
     for (int i = 0; i < 70; i++)
     {
 
@@ -136,7 +136,7 @@ void main()
 {
     vec2 res = vec2(900,900);
     col = vec3(0);
-    sun_pos = vec3(450 + 440 * cos(time / 4) , 200 + 100 * cos(time),1);
+    sun_pos = vec3(450 + 440 * cos(time / 4), 200 + 100 * cos(time), 1);
 
 
     //Sample
@@ -146,8 +146,8 @@ void main()
     vec3 ray_direction = normalize(position_.xyz);
 
     vec3 color = vec3(0,0,0);
-    color = raymarcher(camera_position.xyz, ray_direction.xyz);
-    /* if (position_.y < 300)
+    if (position_.y < 450)
+        color = raymarcher(camera_position.xyz, ray_direction.xyz);
     else
         color = vec3(1.0,0.3,0.3);
     //    float color = get_layers(vec2(position_.x / res.x, position_.y / res.y));*/
