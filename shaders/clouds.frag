@@ -97,6 +97,7 @@ vec3 raymarcher(vec3 p, vec3 ray_direction)
 
     // Number of steps possible to find the closest object
     vec4 sum = vec4(0,0,0,0);
+    col = imageLoad(sun_texture, ivec2(sun_pos.x, gl_GlobalInvocationID.y)).xyz;
     for (int i = 0; i < 70; i++)
     {
 
@@ -113,25 +114,21 @@ vec3 raymarcher(vec3 p, vec3 ray_direction)
 
         if (density > 0.1)
         {
-            vec3  lin = vec3(0.65,0.65,0.75)*1.1 + 0.8*vec3(1.0,0.6,0.3);
+            vec3  lin = vec3(0.65,0.65,0.75)*1.1;
             skycolor = vec4( mix( vec3(1.0,0.95,0.8), vec3(0.5,0.3,0.35), density), density);
             skycolor.xyz *= lin;
             sum += vec4(skycolor.xyz * density, density);
         }
 
-    sum.rgb += 0.6 * vec3(0.8, 0.75, 0.7)*pow(sundot,13.0) * sum.w;
-    // This brightens up the low-density parts (edges) of the clouds (simulates light scattering in fog)
-    sum.rgb -= 0.2 * vec3(1.3, 1.2, 1.0)* pow(sundot,5.0) * (1.0-sum.w);
         if (sum.w > 0.8 || direction.w > max_distance)
             break;
 
 
     }
 
-   col = imageLoad(sun_texture, ivec2(gl_GlobalInvocationID.x, time)).xyz;
     //vec3(0.572,0.733,1.000);
     //}
-    return col;//clamp(col * (1 - sum.xyz) + sum.xyz, 0.0, 1.0);
+    return clamp(col * (1 - sum.xyz) + sum.xyz, 0.0, 1.0);
 }
 
 // Our main function calling camera, raymarcher, lighting, ...
@@ -139,7 +136,8 @@ void main()
 {
     vec2 res = vec2(900,900);
     col = vec3(0);
-    sun_pos = vec3(100 + 100 * cos(time) , 200 + 100 * cos(time),1);
+    sun_pos = vec3(450 + 440 * cos(time / 4) , 200 + 100 * cos(time),1);
+
 
     //Sample
     float x = gl_GlobalInvocationID.x;
