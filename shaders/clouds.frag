@@ -104,10 +104,7 @@ float fbm ( in vec3 _st) {
         sum += a;
         a *= 0.5;
     }
-    return v / sum;
-    /*if (v <= 0.2)
-        return 0.0;
-    return map(v, 0.2, 1.0, 0.0, 1.0);*/
+    return v;
 }
 
 float get_layers(vec3 dir)
@@ -119,9 +116,9 @@ float get_layers(vec3 dir)
 
     vec3 fbm_2;
 
-    fbm_2.x = fbm(dir + fbm_1);
-    fbm_2.y = fbm(dir + fbm_1);
-    fbm_2.z = fbm(dir + fbm_1);
+    fbm_2.x = fbm(dir + fbm_1 + vec3(30, 4, 7));
+    fbm_2.y = fbm(dir + fbm_1 + vec3(5,30,2));
+    fbm_2.z = fbm(dir + fbm_1 + vec3(15, 3, 3));
 
     float f = fbm(dir + fbm_2);
     return (f*f*f+0.6*f*f+0.5*f);
@@ -138,14 +135,15 @@ vec3 raymarcher(vec3 p, vec3 ray_direction)
     vec4 sum = vec4(0,0,0,0);
     col = imageLoad(sun_texture, ivec2(sun_pos.x, gl_GlobalInvocationID.y * 2)).xyz;
 
-    for (int i = 0; i < 40; i++)
+    for (int i = 0; i < 30; i++)
     {
 
         // Moving forward in the wanted direction
-        direction += vec4(ray_direction, 1) * 2;
+        direction += vec4(ray_direction, 1) * 4;
 
-        float density = (1 - (direction.y * 1 * get_layers(direction.xyz)));
 
+        float density =  get_layers(direction.xyz);
+        density = 1 - (direction.y * density);
         if (density > 0.1)
         {
             skycolor.xyz = vec3(mix(vec3(1.0,0.95,0.8), vec3(0.5,0.3,0.35), density));
@@ -157,7 +155,6 @@ vec3 raymarcher(vec3 p, vec3 ray_direction)
             sum.w = 0.9;
             break;
         }
-
 
     }
 
