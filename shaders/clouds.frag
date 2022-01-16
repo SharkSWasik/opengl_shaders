@@ -50,7 +50,10 @@ float noise (in vec2 _st) {
 }
 
 
-#define NUM_OCTAVES 5
+float map(float value, float min1, float max1, float min2, float max2) {
+  return min2 + (value - min1) * (max2 - min2) / (max1 - min1);
+}
+#define NUM_OCTAVES 8
 
 float fbm ( in vec2 _st) {
     float v = 0.1;
@@ -59,28 +62,29 @@ float fbm ( in vec2 _st) {
     // Rotate to reduce axial bias
     for (int i = 0; i < NUM_OCTAVES; ++i) {
         v += a * noise(_st);
-        _st = _st * 2.0 + shift;
+        _st = _st * 2.0;
         a *= 0.5;
     }
-    if (v < 0.2)
-        return 0;
-    else
-    {
-        v = (v - 0.4) / (1 - 0.4);
-    }
-    return v;
+    if (v <= 0.6)
+        return 0.0;
+    return map(v, 0.6, 1.0, 0.0, 1.0);
 }
+
+mat2 m2 = mat2(1.6,-1.2,1.2,1.6);
+
 
 float get_layers(vec2 dir)
 {
+    dir.y -= 10;
+    dir.x += time / 1000;
     vec2 fbm_1;
     fbm_1.x = fbm(dir.xy);
     fbm_1.y = fbm(dir.xy);
 
     vec2 fbm_2;
 
-    fbm_2.x = fbm(dir.xy + fbm_1 + vec2(0.5,2) + 0.2 * time);
-    fbm_2.y = fbm(dir.xy + fbm_1 + vec2(8,2) + 0.16 * time);
+    fbm_2.x = fbm(dir.xy + fbm_1 * time);
+    fbm_2.y = fbm(dir.xy + fbm_1 * time / 5);
 
     float f = fbm(dir.xy + fbm_2);
     return (f*f*f+0.6*f*f+0.5*f);
@@ -114,14 +118,16 @@ vec3 raymarcher(vec3 p, vec3 ray_direction)
 
         if (density > 0.1)
         {
-            vec3  lin = vec3(0.65,0.65,0.75)*1.1;
-            skycolor = vec4( mix( vec3(1.0,0.95,0.8), vec3(0.5,0.3,0.35), density), density);
-            skycolor.xyz *= lin;
+            skycolor.xyz = vec3(mix(vec3(1.0,0.95,0.8), vec3(0.5,0.3,0.35), density));
+            skycolor.xyz *= col * 0.8;
             sum += vec4(skycolor.xyz * density, density);
         }
 
-        if (sum.w > 0.8 || direction.w > max_distance)
+        if (sum.w > 0.9 || direction.w > max_distance)
+        {
+            sum.w = 0.9;
             break;
+        }
 
 
     }
