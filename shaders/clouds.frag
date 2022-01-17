@@ -110,10 +110,7 @@ vec3 raymarcher_sky(vec3 p, vec3 ray_direction)
     // Number of steps possible to find the closest object
     vec4 sum = vec4(0,0,0,0);
 
-    col = imageLoad(sun_texture, ivec2(sun_pos.x, int(gl_GlobalInvocationID.y) * 1.5)).xyz;
-
-    if (gl_GlobalInvocationID.y > 450)
-        col = imageLoad(sun_texture, ivec2(sun_pos.x, int(gl_GlobalInvocationID.y - 450) * 1.5)).xyz;
+    col = imageLoad(sun_texture, ivec2(sun_pos.x, int(100 + ray_direction.y * 800) * 1.5)).xyz;
 
     for (int i = 0; i < 30; i++)
     {
@@ -126,7 +123,7 @@ vec3 raymarcher_sky(vec3 p, vec3 ray_direction)
         density = 1 - (direction.y * density);
         if (density > 0.1)
         {
-            skycolor.xyz = vec3(mix(vec3(1.0,0.95,0.8), vec3(0.5,0.3,0.35), density));
+            skycolor.xyz = vec3(mix(vec3(1.0,0.95,0.8), vec3(0.45,0.5,0.45), density));
             sum += vec4(skycolor.xyz * density, density);
         }
 
@@ -157,8 +154,6 @@ vec3 sky(vec3 position_)
     else
         y = gl_GlobalInvocationID.y - 2 * y;
 
-
-    //if (gl_GlobalInvocationID.y > 450)
 
     vec4 position = vec4(x, y, 900, 1);
     vec3 ray_direction = normalize(position.xyz);
@@ -365,14 +360,10 @@ vec3 change_colors(distance dist, vec3 normal, vec3 p)
         if (dist.drop > noise(p.xy))
         {
             // Calculate water color depending on the reflect the diffusion
-            //
-            //
-            //
             vec3 I = normalize(position_v2.xyz);
             vec3 R = reflect(I, normalize(normal));
             vec3 reflect_color = sky(R).xyz;
-            
-            //vec3 reflect_color = imageLoad(sky_sampler, ivec2(gl_GlobalInvocationID.xy)).xyz;
+
             vec3 refrated = vec3(0.1f, 0.19f, 0.22f) + diffuse(normal, vec3(0.3f,0.5f,0.2f), 80.) * vec3(0.8f, 0.9f,0.6f);
 
             vec3 water_color = mix(reflect_color, refrated, 0.4);
@@ -419,7 +410,7 @@ vec4 raymarcher(vec3 p, vec3 ray_direction)
     distance dist_obj;
 
     // The maximum distance we can see
-    float max_distance = 500.;
+    float max_distance = 400.;
 
     // Number of steps possible to find the closest object
     for(int i = 0; i < 99; i++)
@@ -491,7 +482,7 @@ void main()
 
     // Global lighting
     vec3 normal = get_normal(march.xyz);
-    vec3 refraction_direction = refract(ray_direction,normal,.75);
+    vec3 refraction_direction = refract(ray_direction, normal,.75);
     vec3 refracted = lighting(refraction_direction);
     vec3 ambient = lighting(ray_direction)*.5;
     col += mix(refracted, ambient,0.6);
