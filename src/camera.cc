@@ -11,7 +11,7 @@ namespace mygl {
 
     void Camera::enterkeyboard(int key, int mouse_x, int mouse_y)
     {
-        float speed = 0.1f;
+        float speed = 0.01f;
         glm::vec3 target(0.0f, 0.0f, 1.0f);
         glm::vec3 left_dir = glm::cross(target, m_up);
 
@@ -32,7 +32,7 @@ namespace mygl {
     }
     void Camera::enterkeyboard(unsigned char key, int mouse_x, int mouse_y)
     {
-        float speed = 0.1f;
+        float speed = 0.01f;
         glm::vec3 target(0.0f, 0.0f, 1.0f);
         glm::vec3 left_dir = glm::cross(target, m_up);
 
@@ -60,7 +60,7 @@ namespace mygl {
         int wh = glutGet(GLUT_WINDOW_HEIGHT);
         dx = x - ww / 2;
         dy = y - wh / 2;
-        const float mousespeed = 0.001;
+        const float mousespeed = 0.00001;
 
         angles.x += dx * mousespeed;
         angles.y -= dy * mousespeed;

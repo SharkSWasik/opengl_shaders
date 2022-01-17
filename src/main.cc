@@ -115,13 +115,6 @@ void init_VBO()
 void init_textures()
 {
 
-   /* std::vector<std::string> sky_faces = {"../textures/skybox_px.tga",
-                                        "../textures/skybox_nx.tga",
-                                        "../textures/skybox_py.tga",
-                                        "../textures/skybox_ny.tga",
-                                        "../textures/skybox_pz.tga",
-                                        "../textures/skybox_nz.tga"
-                                        };*/
     std::vector<std::string> sky_faces = {"../textures/skybox/right.tga",
                                         "../textures/skybox/left.tga",
                                         "../textures/skybox/top.tga",
@@ -134,7 +127,6 @@ void init_textures()
     glActiveTexture(GL_TEXTURE0);TEST_OPENGL_ERROR();
 
     //activation of texture
-    //glBindTexture(GL_TEXTURE_2D, texture_id);
     glBindTexture(GL_TEXTURE_CUBE_MAP, texture_id);
 
     for (int i = 0; i < 6; i++)
@@ -144,35 +136,28 @@ void init_textures()
         glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGBA32F, sky->sx, sky->sy, 0, GL_RGB, GL_UNSIGNED_BYTE, sky->pixels);TEST_OPENGL_ERROR();
     }
 
-   // tifo::rgb24_image *sky = tifo::load_image(sky_faces[0].c_str());
-   // glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, sky->sx, sky->sy, 0, GL_RGB, GL_UNSIGNED_BYTE, sky->pixels);TEST_OPENGL_ERROR();
-    //glGenerateMipmapEXT(GL_TEXTURE_2D);
     glGenerateMipmapEXT(GL_TEXTURE_CUBE_MAP);
 
 
     //putting cubemap in uniform vairable
     tex_location = glGetUniformLocation(program_id, "sky_sampler");TEST_OPENGL_ERROR();
     glUniform1i(tex_location, 0);TEST_OPENGL_ERROR();
-   // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-    //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);TEST_OPENGL_ERROR();
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);TEST_OPENGL_ERROR();
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);TEST_OPENGL_ERROR();
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);TEST_OPENGL_ERROR();
     glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);TEST_OPENGL_ERROR();
-    
+
     raymarch = tifo::load_image(sky_faces[0].c_str());
 
     glGenTextures(1, &img_texture);TEST_OPENGL_ERROR();
     glActiveTexture(GL_TEXTURE1);TEST_OPENGL_ERROR();
 
-    //activation of texture
-    //glBindImageTexture(0, img_texture, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA);TEST_OPENGL_ERROR();
     glBindTexture(GL_TEXTURE_2D, img_texture);TEST_OPENGL_ERROR();
 
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, 900, 900, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);TEST_OPENGL_ERROR();
-    
+
     img_location = glGetUniformLocation(program_id, "raymarch");TEST_OPENGL_ERROR();
     glUniform1i(img_location, 1);TEST_OPENGL_ERROR();
 
@@ -188,11 +173,10 @@ void init_textures()
     glActiveTexture(GL_TEXTURE2);TEST_OPENGL_ERROR();
 
     //activation of texture
-    //glBindImageTexture(0, img_texture, 0, GL_FALSE, 0, GL_READ_WRITE, GL_RGBA);TEST_OPENGL_ERROR();
     glBindTexture(GL_TEXTURE_2D, sun_texture);TEST_OPENGL_ERROR();
 
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, sun_color->sx, sun_color->sy, 0, GL_RGB, GL_UNSIGNED_BYTE, sun_color->pixels);TEST_OPENGL_ERROR();
-    
+
     sun_location = glGetUniformLocation(program_id, "sun_texture");TEST_OPENGL_ERROR();
     glUniform1i(sun_location, 2);TEST_OPENGL_ERROR();
 
@@ -224,8 +208,6 @@ void idle()
     float time = glutGet(GLUT_ELAPSED_TIME) / 1000.;
     glUniform1f(time_location, time);
 
-    // Our ModelViewProjection : multiplication of our 3 matrices
-    //  mvp = glm::rotate(mvp, -
     camera->m_view = glm::lookAt(
             camera->m_camera_position,//camera
             camera->m_camera_look_at,
@@ -244,7 +226,7 @@ void idle()
 
     GLint mouse_location = glGetUniformLocation(program_id, "mouse");
     glUniform2fv(mouse_location, 1, &camera->m_mouse[0]);
-    
+
     glutPostRedisplay();
 }
 

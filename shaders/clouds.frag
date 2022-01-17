@@ -1,5 +1,6 @@
 #version 460
 
+#define NUM_OCTAVES 5
 
 layout(local_size_x = 20, local_size_y = 20) in;
 
@@ -32,57 +33,54 @@ float random (in vec2 _st) {
 
 float hash( float n )
 {
-    return fract( sin( n ) * 45843.349 );
+    return fract( sin( n ) * 44843.349 );
 
 }
 
+//brownian noise
 float noise( in vec3 x )
 {
-    
+
     vec3 p = floor( x );
     vec3 k = fract( x );
-    
+
     k *= k * k * ( 3.0 - 2.0 * k );
-    
+
     float n = p.x + p.y * 57.0 + p.z * 113.0; 
-    
+
     float a = hash( n );
     float b = hash( n + 1.0 );
     float c = hash( n + 57.0 );
     float d = hash( n + 58.0 );
-    
+
     float e = hash( n + 113.0 );
     float f = hash( n + 114.0 );
     float g = hash( n + 170.0 );
     float h = hash( n + 171.0 );
-    
+
     float res = mix( mix( mix ( a, b, k.x ), mix( c, d, k.x ), k.y ),
-                     mix( mix ( e, f, k.x ), mix( g, h, k.x ), k.y ),
-                     k.z
-    				 );
-    
+        mix( mix ( e, f, k.x ), mix( g, h, k.x ), k.y ),
+        k.z
+    );
+
     return res;
-    
 }
 
-#define NUM_OCTAVES 8
-
+//fractal noise creation
 float fbm ( in vec3 _st) {
     float v = 0.1;
-    float a = 0.5;
-    float sum = 0;
-    vec3 shift = vec3(100.0);
+    float a = 0.5; // amplitude
     // Rotate to reduce axial bias
     for (int i = 0; i < NUM_OCTAVES; ++i) {
         v += a * noise(_st);
         _st = _st * 2;
-        _st += time / 100;
-        sum += a;
+        _st += time / 100; // auto similarite
         a *= 0.5;
     }
     return v;
 }
 
+//overlay of noise layers to create clouds
 float get_layers(vec3 dir)
 {
     vec3 fbm_1;
@@ -110,29 +108,43 @@ vec3 raymarcher_sky(vec3 p, vec3 ray_direction)
     // Number of steps possible to find the closest object
     vec4 sum = vec4(0,0,0,0);
 
+    //get correct sky color from texture
+    //1.5 in order to have more orange when sun is gone
+    //ray direction is normalized that's why we multiply this index by resolution
     col = imageLoad(sun_texture, ivec2(sun_pos.x, int(100 + ray_direction.y * 800) * 1.5)).xyz;
 
     for (int i = 0; i < 30; i++)
     {
-
         // Moving forward in the wanted direction
-        direction += vec4(ray_direction, 1) * 4;
-
+        direction += vec4(ray_direction, 1) * 4; //we fix step between raymarching because we do not have distance functions
 
         float density =  get_layers(direction.xyz);
+
+        //clouds on top have higher density using direction.y
         density = 1 - (direction.y * density);
+
         if (density > 0.1)
         {
             skycolor.xyz = vec3(mix(vec3(1.0,0.95,0.8), vec3(0.45,0.5,0.45), density));
             sum += vec4(skycolor.xyz * density, density);
         }
 
+        //sum.w > 0.9 symbolises clouds full white, so we do not need to send a ray again
         if (sum.w > 0.9 || direction.w > max_distance)
         {
             sum.w = 0.9;
             break;
         }
+    }
 
+    //get a sun corresponding to background
+    vec3 sun_position = vec3(900 - mod(time * 72 + 500, 1800.), 900 - (sin(mod(time * 72 + 500, 1800.) * PI / 900) * 440 + 450), 0.);
+    float radius = length(vec3(ray_direction.x * 900 + 450, ray_direction.y * 900, 0.) - sun_position);
+    if (radius < 50.) // sun area
+    {
+        vec3 yellow = vec3(0.99, 0.83, 0.25);
+        vec4 sun_color = vec4(clamp(yellow / (radius / 150.), 0.001, 1.0), 0.5);
+        col = mix(col, sun_color.rgb, 0.9);
     }
 
     return clamp(col * (1 - sum.xyz) + sum.xyz, 0.0, 1.0);
@@ -141,14 +153,18 @@ vec3 raymarcher_sky(vec3 p, vec3 ray_direction)
 // Our main function calling camera, raymarcher, lighting, ...
 vec3 sky(vec3 position_)
 {
-    vec2 res = vec2(900,900);
+    vec2 res = vec2(900,900); //resolution
     col = vec3(0);
     sun_pos = vec3(450 + 440 * cos(time / 4), 200 + 100 * cos(time), 1);
 
 
-    float x = position_.x * 900;
-    float y = position_.y * 900;
+    float x = position_.x * res.x; //because position_ is normalized
+    float y = position_.y * res.y;
 
+    //check if position_ is a reflected ray
+    //we need to adapt x and y because our first project was using weird coordonates
+
+    //if we are in water
     if (position.y < 450)
         y = y + (2 * gl_GlobalInvocationID.y) - 450;
     else
@@ -308,7 +324,7 @@ distance dist(vec3 p)
 
     // Parameters
     int nb_drops = 2;
-    float max_y = 12.;
+    float max_y = 10.;
     float max_x = 8.;
     float max_time = 10.;
 
@@ -437,6 +453,7 @@ vec4 raymarcher(vec3 p, vec3 ray_direction)
     return result;
 }
 
+//rotation functions for cameras moves
 mat4 rotationX( in float angle ) {
 	return mat4(	1.0,		0,			0,			0,
 			 		0, 	cos(angle),	-sin(angle),		0,
